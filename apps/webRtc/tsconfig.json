@@ -1,0 +1,21 @@
+{
+  "extends":"@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2020",
+    "lib": ["es2020"],
+    "types": ["node"],
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "./dist" // Where your compiled JS files go
+  },
+  "include": [
+    "src/**/*" // Adjust if your source files are elsewhere
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -5,11 +5,19 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "webRtc": [
+        "apps/webRtc/src"
+      ]
+    },
+    "noEmit": true
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".next/types/**/!([[]*[]]).ts",
     "next-env.d.ts",
     "next.config.js",
     ".next/types/**/*.ts"

@@ -1,0 +1,8 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": false,
+    // You can override or add extra options here
+  }
+}
