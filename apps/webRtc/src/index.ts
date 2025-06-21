@@ -335,7 +335,7 @@ io.on('connect', async (socket : Socket) => {
 
                 if (room.ffmpegProcess) {
                     console.log(`Stopping FFmpeg recording for room ${roomId}`);
-                    room.ffmpegProcess.kill('SIGINT'); // or 'SIGKILL' if FFmpeg doesn't stop
+                    room.ffmpegProcess.kill('SIGINT'); 
                 }
 
                 releaseRoomPorts(roomId);
