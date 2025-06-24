@@ -1,16 +1,25 @@
 import * as fs from 'fs';
-import * as path from 'path';
-import { spawn, ChildProcess } from 'child_process';
 import * as http from 'http';
 import * as mediasoup from 'mediasoup';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { CreateWorker } from './mediasoup/worker';
-import { createWebRtcTransport } from './mediasoup/transport';
-import { RtpParameters } from 'mediasoup/node/lib/rtpParametersTypes';
-import dgram from 'dgram';
+import { createWebRtcTransport,createPlainTransport } from './mediasoup/transport';
+import { startFfmpegRecording } from './mediasoup/recording'; 
+import { getFreePortPair,releasePortPair } from './mediasoup/get-port';
+
+if (!fs.existsSync('recordings')) {
+  fs.mkdirSync('recordings');
+}
 
 const PORT = 8080;
 const server = http.createServer();
+
+let workerPromise = CreateWorker();
+let rooms: Record<string, Room> = {};
+let peers: Record<string, Peer> = {};
+let transports: TransportData[] = [];
+let producers: ProducerData[] = [];
+let consumers: ConsumerData[] = [];
 
 const io = new SocketIOServer(server, {
   cors: {
@@ -34,9 +43,6 @@ const mediaCodecs: mediasoup.types.RtpCodecCapability[] = [
     }
   }
 ];
-
-let workerPromise = CreateWorker();
-
 type Room = {
   router: mediasoup.types.Router;
   peers: string[];
@@ -50,6 +56,20 @@ type Peer = {
   producers: mediasoup.types.Producer[];
   consumers: string[];
   peerDetails: { name: string };
+  recording?:{
+    audioProducer: mediasoup.types.Producer | null,
+    videoProducer: mediasoup.types.Producer | null,
+    audioPorts: {
+        rtpPort : number,
+        rtcpPort : number
+      } | null,
+    videoPorts: {
+        rtpPort : number,
+        rtcpPort : number
+      } | null,
+    started: boolean,
+    process?: import('child_process').ChildProcess
+  }
 };
 
 type TransportData = {
@@ -73,18 +93,13 @@ type ConsumerData = {
   roomId: string;
 };
 
-let rooms: Record<string, Room> = {};
-let peers: Record<string, Peer> = {};
-let transports: TransportData[] = [];
-let producers: ProducerData[] = [];
-let consumers: ConsumerData[] = [];
-
 io.on('connect', async (socket: Socket) => {
   console.log('a new peer connected with socketId : ', socket.id);
+
   socket.emit('connection-success', { socketId: socket.id });
 
   const worker = await workerPromise;
-
+  
   async function createRoom(roomId: string, socketId: string) {
     let room = rooms[roomId];
     if (room) {
@@ -110,6 +125,21 @@ io.on('connect', async (socket: Socket) => {
       };
       return router;
     }
+  }
+
+  async function consumeProducerToPlainTransport(
+    router: mediasoup.types.Router,
+    producer: mediasoup.types.Producer,
+    plainTransport: mediasoup.types.PlainTransport
+  ) {
+    const consumer = await plainTransport.consume({
+      producerId: producer.id,
+      rtpCapabilities: router.rtpCapabilities,
+      paused: false,
+    });
+    await consumer.resume();
+
+    return consumer;
   }
 
   function addTransport(transport: any, roomId: string, consumer: boolean) {
@@ -297,6 +327,114 @@ io.on('connect', async (socket: Socket) => {
     }
     addProducer(producer, roomId, appData);
     informConsumers(roomId, socket.id, producer.id);
+    const {rtpPort,rtcpPort}=await getFreePortPair();
+    const plainTransport = await createPlainTransport(room.router,rtpPort,rtcpPort);
+    const consumer=await consumeProducerToPlainTransport(room.router,producer,plainTransport);
+    console.log('Consumer created:', consumer.id, 'for producer:', producer.id);
+    if (!peer.recording) {
+      peer.recording = {
+        audioProducer: null,
+        videoProducer: null,
+        audioPorts: null,
+        videoPorts: null,
+        started: false
+      };
+    }
+
+    if (kind === 'audio') {
+      peer.recording.audioProducer = producer; 
+      if (typeof rtcpPort === 'number') {
+        peer.recording.audioPorts ={ rtpPort: rtpPort, rtcpPort: rtcpPort };
+      } else {
+        throw new Error('rtcpPort is undefined');
+      }
+    } 
+    else if (kind === 'video') {
+      peer.recording.videoProducer = producer; 
+      if (typeof rtcpPort === 'number') {
+        peer.recording.videoPorts ={ rtpPort: rtpPort, rtcpPort: rtcpPort };
+      } else {
+        throw new Error('rtcpPort is undefined');
+      }
+    }
+    console.log(peer.recording);
+
+    if ( 
+      (peer.recording.audioProducer ||
+      peer.recording.videoProducer) &&
+      !peer.recording.started
+    ){
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const outputFile = `recordings/room-${roomId}-${timestamp}.webm`;
+      peer.recording.started = true;
+      if(peer.recording.audioProducer) console.log('audio producers available. Starting FFmpeg...');
+      else console.log('video producers available. Starting FFmpeg...');
+
+      if (peer.recording.audioProducer) {
+        peer.recording.process = startFfmpegRecording({
+          audio: peer.recording.audioPorts!,
+          outputFile: outputFile
+        });
+      } else {
+        peer.recording.process = startFfmpegRecording({
+          video: peer.recording.videoPorts!,
+          outputFile: outputFile
+        });
+      }
+    }
+
+    producer.on('transportclose', () => {
+      if (plainTransport) {
+        plainTransport.close(); 
+      }
+    });
+
+    producer.on('@close', () => {
+      console.log('Producer closed:', producer.kind);
+
+      try {
+        consumer?.close();
+        plainTransport?.close();
+
+        if (peer.recording?.process) {
+          console.log('Waiting 1s before killing FFmpeg to flush buffer...');
+          setTimeout(() => {
+            peer.recording?.process?.kill('SIGINT');
+            console.log('FFmpeg process killed');
+          }, 1000); 
+        }
+
+        if (kind === 'audio' && peer.recording?.audioPorts) {
+          releasePortPair(peer.recording.audioPorts.rtpPort, peer.recording.audioPorts.rtcpPort);
+        }
+
+        if (kind === 'video' && peer.recording?.videoPorts) {
+          releasePortPair(peer.recording.videoPorts.rtpPort, peer.recording.videoPorts.rtcpPort);
+        }
+
+        if (peer.recording) {
+          if (kind === 'audio') {
+            peer.recording.audioProducer = null;
+            peer.recording.audioPorts = null;
+          }
+
+          if (kind === 'video') {
+            peer.recording.videoProducer = null;
+            peer.recording.videoPorts = null;
+          }
+
+          if (!peer.recording.audioProducer && !peer.recording.videoProducer) {
+            peer.recording.started = false;
+          }
+        }
+
+        console.log('Cleaned up after producer close');
+      } catch (err) {
+        console.error('Error during producer cleanup:', err);
+      }
+    });
+
+
     callback({ id: producer.id, producerExist: peer.producers.length > 1 });
   });
 
