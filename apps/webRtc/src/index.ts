@@ -1,11 +1,13 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import * as http from 'http';
 import * as mediasoup from 'mediasoup';
+import { spawn, ChildProcess } from 'child_process';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { CreateWorker } from './mediasoup/worker';
 import { createWebRtcTransport,createPlainTransport } from './mediasoup/transport';
-import { startFfmpegRecording } from './mediasoup/recording'; 
 import { getFreePortPair,releasePortPair } from './mediasoup/get-port';
+import { generateGStreamerCommand } from './mediasoup/recording';
 
 if (!fs.existsSync('recordings')) {
   fs.mkdirSync('recordings');
@@ -15,19 +17,19 @@ const PORT = 8080;
 const server = http.createServer();
 
 let workerPromise = CreateWorker();
-let rooms: Record<string, Room> = {};
-let peers: Record<string, Peer> = {};
-let transports: TransportData[] = [];
-let producers: ProducerData[] = [];
-let consumers: ConsumerData[] = [];
+export let rooms: Record<string, Room> = {};
+export let peers: Record<string, Peer> = {};
+export let transports: TransportData[] = [];
+export let producers: ProducerData[] = [];
+export let consumers: ConsumerData[] = [];
 
-const io = new SocketIOServer(server, {
+export const io = new SocketIOServer(server, {
   cors: {
     origin: '*',
   }
 });
 
-const mediaCodecs: mediasoup.types.RtpCodecCapability[] = [
+export const mediaCodecs: mediasoup.types.RtpCodecCapability[] = [
   {
     kind: 'audio',
     mimeType: 'audio/opus',
@@ -43,36 +45,37 @@ const mediaCodecs: mediasoup.types.RtpCodecCapability[] = [
     }
   }
 ];
-type Room = {
+
+export type Room = {
   router: mediasoup.types.Router;
   peers: string[];
   screenShared: string;
+  isRecording : boolean;
+  process?: import('child_process').ChildProcess;
 };
 
-type Peer = {
+export type RecordingTrackType = 'audio' | 'video' | 'screen';
+
+export type RecordingEntry = {
+  producer: mediasoup.types.Producer;
+  kind: RecordingTrackType;
+  ports: {
+    rtpPort: number;
+    rtcpPort: number;
+  };
+};
+
+export type Peer = {
   socket: Socket;
   roomId: string;
   transports: string[];
   producers: mediasoup.types.Producer[];
   consumers: string[];
   peerDetails: { name: string };
-  recording?:{
-    audioProducer: mediasoup.types.Producer | null,
-    videoProducer: mediasoup.types.Producer | null,
-    audioPorts: {
-        rtpPort : number,
-        rtcpPort : number
-      } | null,
-    videoPorts: {
-        rtpPort : number,
-        rtcpPort : number
-      } | null,
-    started: boolean,
-    process?: import('child_process').ChildProcess
-  }
+  recordings:RecordingEntry[]
 };
 
-type TransportData = {
+export type TransportData = {
   socketId: string;
   transport: mediasoup.types.WebRtcTransport;
   roomId: string;
@@ -80,14 +83,14 @@ type TransportData = {
   isConnected?: boolean;
 };
 
-type ProducerData = {
+export type ProducerData = {
   socketId: string;
   producer: mediasoup.types.Producer;
   roomId: string;
   appData: { kind: string };
 };
 
-type ConsumerData = {
+export type ConsumerData = {
   socketId: string;
   consumer: mediasoup.types.Consumer;
   roomId: string;
@@ -99,7 +102,43 @@ io.on('connect', async (socket: Socket) => {
   socket.emit('connection-success', { socketId: socket.id });
 
   const worker = await workerPromise;
-  
+
+  function startRecording(roomId : string) : boolean{
+    const room=rooms[roomId];
+    if(!room){
+      console.log(`Room ${roomId} not found`);
+      return false;
+    }
+    const roomPeers = room.peers.map(socketId => peers[socketId]).filter(p => !!p) as Peer[];
+    const allRecordings: RecordingEntry[] = roomPeers.flatMap(p => p.recordings || []);
+    const outputFile = path.join(__dirname, `../../recordings/room-${roomId}-${Date.now()}.webm`);
+
+    const command = generateGStreamerCommand(allRecordings, outputFile);
+    console.log('Starting GStreamer with command:\n', command.join(' \\\n'));
+    const gst = spawn('gst-launch-1.0', command, { shell: true });
+    
+    gst.stderr.on('data', data => console.error('[GStreamer]', data.toString()));
+    gst.stdout?.on('data', data => console.log('[GStreamer]', data.toString()));
+    gst.on('exit', code => console.log(`GStreamer exited with code ${code}`));
+    room.process = gst;
+    return true;
+  }
+
+  function stopRecording(roomId: string): boolean {
+    const room = rooms[roomId];
+    if (!room?.process) return false;
+
+    try {
+      room.process.kill('SIGINT');
+      console.log('Stopped recording for room:', roomId);
+      delete room.process;
+      return true;
+    } catch (err) {
+      console.error('Failed to stop recording:', err);
+      return false;
+    }
+  }
+
   async function createRoom(roomId: string, socketId: string) {
     let room = rooms[roomId];
     if (room) {
@@ -121,7 +160,8 @@ io.on('connect', async (socket: Socket) => {
       rooms[roomId] = {
         router: router!,
         peers: [socketId],
-        screenShared: ''
+        screenShared: '',
+        isRecording: false,
       };
       return router;
     }
@@ -153,7 +193,8 @@ io.on('connect', async (socket: Socket) => {
       transports: [...(peers[socket.id]?.transports ?? []), transport.id],
       producers: peers[socket.id]?.producers ?? [],
       consumers: peers[socket.id]?.consumers ?? [],
-      peerDetails: peers[socket.id]?.peerDetails ?? { name: '' }
+      peerDetails: peers[socket.id]?.peerDetails ?? { name: '' },
+      recordings:peers[socket.id]?.recordings??[]
     };
   }
 
@@ -168,7 +209,8 @@ io.on('connect', async (socket: Socket) => {
       transports: peers[socket.id]?.transports ?? [],
       producers: [...(peers[socket.id]?.producers ?? []), producer],
       consumers: peers[socket.id]?.consumers ?? [],
-      peerDetails: peers[socket.id]?.peerDetails ?? { name: '' }
+      peerDetails: peers[socket.id]?.peerDetails ?? { name: '' },
+      recordings:peers[socket.id]?.recordings??[]
     };
   }
 
@@ -183,7 +225,8 @@ io.on('connect', async (socket: Socket) => {
       transports: peers[socket.id]?.transports ?? [],
       producers: peers[socket.id]?.producers ?? [],
       consumers: [...(peers[socket.id]?.consumers ?? []), consumer.id],
-      peerDetails: peers[socket.id]?.peerDetails ?? { name: '' }
+      peerDetails: peers[socket.id]?.peerDetails ?? { name: '' },
+      recordings:peers[socket.id]?.recordings??[]
     };
   }
 
@@ -226,7 +269,8 @@ io.on('connect', async (socket: Socket) => {
       rooms[roomId] = {
         router: rooms[roomId].router,
         peers: rooms[roomId].peers.filter(id => id !== socket.id),
-        screenShared: rooms[roomId].screenShared
+        screenShared: rooms[roomId].screenShared,
+        isRecording:rooms[roomId].isRecording
       };
       const room = rooms[roomId];
       if (room && room.screenShared === socket.id) {
@@ -234,6 +278,7 @@ io.on('connect', async (socket: Socket) => {
         console.log('Stopped screen sharing for disconnected peer');
       }
       if (rooms[roomId].peers.length === 0) {
+        stopRecording(roomId);
         delete rooms[roomId];
       }
     }
@@ -249,7 +294,8 @@ io.on('connect', async (socket: Socket) => {
       transports: [],
       producers: [],
       consumers: [],
-      peerDetails: { name: '' }
+      peerDetails: { name: '' },
+      recordings:[]
     };
     const rtpCapabilities = router?.rtpCapabilities;
     callback(rtpCapabilities);
@@ -312,7 +358,7 @@ io.on('connect', async (socket: Socket) => {
       console.error('Peer not found for socket:', socket.id);
       return callback({ error: 'Peer not found' });
     }
-    const existingIndex = peer.producers.findIndex(p => p === kind && p.appData?.mediaTag === appData?.mediaTag);
+    const existingIndex = peer.producers.findIndex(p => p === kind && p.appData?.kind === appData?.kind);
     if (existingIndex !== -1 && peer.producers[existingIndex]) {
       await peer.producers[existingIndex].close();
       peer.producers.splice(existingIndex, 1);
@@ -331,57 +377,32 @@ io.on('connect', async (socket: Socket) => {
     const plainTransport = await createPlainTransport(room.router,rtpPort,rtcpPort);
     const consumer=await consumeProducerToPlainTransport(room.router,producer,plainTransport);
     console.log('Consumer created:', consumer.id, 'for producer:', producer.id);
-    if (!peer.recording) {
-      peer.recording = {
-        audioProducer: null,
-        videoProducer: null,
-        audioPorts: null,
-        videoPorts: null,
-        started: false
-      };
-    }
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    let mediaKind : RecordingTrackType = 'video';
 
-    if (kind === 'audio') {
-      peer.recording.audioProducer = producer; 
-      if (typeof rtcpPort === 'number') {
-        peer.recording.audioPorts ={ rtpPort: rtpPort, rtcpPort: rtcpPort };
-      } else {
-        throw new Error('rtcpPort is undefined');
+    if(kind==='audio' || appData.kind=='audio'){
+      mediaKind='audio';
+    } 
+    else{
+      if(kind==='video' && appData.kind=='screen'){
+        mediaKind='screen';
+      }
+      else{
+        mediaKind='video';
       }
     } 
-    else if (kind === 'video') {
-      peer.recording.videoProducer = producer; 
-      if (typeof rtcpPort === 'number') {
-        peer.recording.videoPorts ={ rtpPort: rtpPort, rtcpPort: rtcpPort };
-      } else {
-        throw new Error('rtcpPort is undefined');
-      }
-    }
-    console.log(peer.recording);
 
-    if ( 
-      (peer.recording.audioProducer ||
-      peer.recording.videoProducer) &&
-      !peer.recording.started
-    ){
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const outputFile = `recordings/room-${roomId}-${timestamp}.webm`;
-      peer.recording.started = true;
-      if(peer.recording.audioProducer) console.log('audio producers available. Starting FFmpeg...');
-      else console.log('video producers available. Starting FFmpeg...');
-
-      if (peer.recording.audioProducer) {
-        peer.recording.process = startFfmpegRecording({
-          audio: peer.recording.audioPorts!,
-          outputFile: outputFile
-        });
-      } else {
-        peer.recording.process = startFfmpegRecording({
-          video: peer.recording.videoPorts!,
-          outputFile: outputFile
-        });
-      }
-    }
+    const recording : RecordingEntry={
+      producer: producer,
+      kind: mediaKind,
+      ports: {
+        rtpPort: rtpPort,
+        rtcpPort: rtcpPort,
+      },
+    }  
+    
+    peer.recordings.push(recording);
 
     producer.on('transportclose', () => {
       if (plainTransport) {
@@ -391,49 +412,9 @@ io.on('connect', async (socket: Socket) => {
 
     producer.on('@close', () => {
       console.log('Producer closed:', producer.kind);
-
-      try {
-        consumer?.close();
-        plainTransport?.close();
-
-        if (peer.recording?.process) {
-          console.log('Waiting 1s before killing FFmpeg to flush buffer...');
-          setTimeout(() => {
-            peer.recording?.process?.kill('SIGINT');
-            console.log('FFmpeg process killed');
-          }, 1000); 
-        }
-
-        if (kind === 'audio' && peer.recording?.audioPorts) {
-          releasePortPair(peer.recording.audioPorts.rtpPort, peer.recording.audioPorts.rtcpPort);
-        }
-
-        if (kind === 'video' && peer.recording?.videoPorts) {
-          releasePortPair(peer.recording.videoPorts.rtpPort, peer.recording.videoPorts.rtcpPort);
-        }
-
-        if (peer.recording) {
-          if (kind === 'audio') {
-            peer.recording.audioProducer = null;
-            peer.recording.audioPorts = null;
-          }
-
-          if (kind === 'video') {
-            peer.recording.videoProducer = null;
-            peer.recording.videoPorts = null;
-          }
-
-          if (!peer.recording.audioProducer && !peer.recording.videoProducer) {
-            peer.recording.started = false;
-          }
-        }
-
-        console.log('Cleaned up after producer close');
-      } catch (err) {
-        console.error('Error during producer cleanup:', err);
-      }
+      consumer?.close();
+      plainTransport?.close();  
     });
-
 
     callback({ id: producer.id, producerExist: peer.producers.length > 1 });
   });
@@ -559,6 +540,19 @@ io.on('connect', async (socket: Socket) => {
       socket.emit('limit-ack', rooms[roomId].peers.length < 5);
     } else socket.emit('limit-ack', true);
   });
+
+  socket.on('start-recording',(roomId,callback)=>{
+    console.log('start recording request for roomId : ',roomId);
+    const response=startRecording(roomId);
+    callback(response);    
+  })
+
+  socket.on('stop-recording',(roomId,callback)=>{
+    console.log('stop recording request for roomId : ',roomId);
+    const response=stopRecording(roomId);
+    callback(response);    
+  })
+
 });
 
 server.listen(PORT, () => {

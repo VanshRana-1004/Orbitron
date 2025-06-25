@@ -10,6 +10,8 @@ const SERVER_URL='http://localhost:8080';
 
 export default function Calling(){
     const router=useRouter();
+    const [admin,setAdmin]=useState<boolean>(false);
+    const [isRecording,setIsRecording]=useState<boolean>(false);
     const [camera,setCamera]=useState<boolean>(true);
     const [mic,setMic]=useState<boolean>(true);
     const [shareScreen,setShareScreen]=useState<boolean>(false);
@@ -171,6 +173,10 @@ export default function Calling(){
         newSocket.on('recording-ack',({response})=>{
             if(response) alert('resources are ready and recording will start')
             else alert('No recording for this session as resources are busy, but you can continue the call');
+        })
+
+        newSocket.on('admin',()=>{
+            setAdmin(true);
         })
 
     },[])
@@ -647,6 +653,44 @@ export default function Calling(){
             }
     }
 
+    async function startRecording(){
+        const socket=sckt.current;
+        try{
+            await socket?.emit('start-recording',roomId,(response : string)=>{
+                console.log(response);
+                if(response){
+                    alert('resources are ready recording will start in few seconds.')
+                    setIsRecording(true);
+                }
+                else{
+                    alert('resources are not ready, please try again!');
+                    return
+                }
+            });
+        }catch(e){
+            console.log('unknown error while starting recording.')
+        }
+    }
+
+    async function stopRecording(){
+        const socket=sckt.current;
+        try{
+            await socket?.emit('stop-recording',roomId,(response : string)=>{
+                console.log(response);
+                if(response){
+                    alert('recording stopped successfully.')
+                    setIsRecording(false);
+                }
+                else{
+                    alert('error in stop recording, either leave the call or try again later!');
+                    return
+                }
+            });
+        }catch(e){
+            console.log('unknown error while stopping recording.')
+        }
+    } 
+
     return <div className="flex h-screen w-screen bg-zinc-900">
         <div className='flex w-full backdrop-blur-xs bg-white/10 fixed top-0 px-20 py-2 gap-5 z-50'>
             <div className='px-2 py-1'>{`call : ${callName}`}</div>
@@ -654,6 +698,9 @@ export default function Calling(){
             <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={handleCamera}>{!camera ? 'on camera' : 'off camera'}</div>
             <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={handleMic}>{!mic ? 'on mic' : 'off mic'}</div>
             <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={handleScreenShare}>{!shareScreen ? 'share screen' : 'stop screen sharing'}</div>
+            {admin && !isRecording && <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={startRecording}>record</div>}
+            {admin && isRecording && <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={stopRecording}>stop recording</div>}
+            {admin && isRecording && <div className='px-2 py-1'>Recording</div>}
         </div>
         <video ref={localVideo} playsInline autoPlay className={`fixed ${peers>0 ? 'top-16 right-5 w-56 h-30 rounded border border-gray-300' : 'top-0 left-1/2 -translate-x-1/2 w-screen h-screen rounded'} `}></video>
         <div style={{display:peers>0?'block':'none'}} className='w-[80%] overflow-y-scroll py-12'>
@@ -691,5 +738,3 @@ export default function Calling(){
         </div>
     </div>
 }
-// when the first peer will join the call i.e. when a room is just created ports will be assigned/mapped to the room so that when any peer connect or join the room they must mapped to these ports only
-// and their recording always remains on. 
