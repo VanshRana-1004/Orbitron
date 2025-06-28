@@ -2,34 +2,33 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as http from 'http';
 import * as mediasoup from 'mediasoup';
-import { spawn, ChildProcess } from 'child_process';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { CreateWorker } from './mediasoup/worker';
-import { createWebRtcTransport,createPlainTransport } from './mediasoup/transport';
-import { getFreePortPair,releasePortPair } from './mediasoup/get-port';
-import { generateGStreamerCommand } from './mediasoup/recording';
+import { createWebRtcTransport} from './mediasoup/transport';
+const recordingsBasePath = path.join(__dirname, 'recordings');
 
-if (!fs.existsSync('recordings')) {
-  fs.mkdirSync('recordings');
+if (!fs.existsSync(recordingsBasePath)) {
+  fs.mkdirSync(recordingsBasePath, { recursive: true });
+  console.log('Created base recordings folder');
 }
 
 const PORT = 8080;
 const server = http.createServer();
 
 let workerPromise = CreateWorker();
-export let rooms: Record<string, Room> = {};
-export let peers: Record<string, Peer> = {};
-export let transports: TransportData[] = [];
-export let producers: ProducerData[] = [];
-export let consumers: ConsumerData[] = [];
+let rooms: Record<string, Room> = {};
+let peers: Record<string, Peer> = {};
+let transports: TransportData[] = [];
+let producers: ProducerData[] = [];
+let consumers: ConsumerData[] = [];
 
-export const io = new SocketIOServer(server, {
+const io = new SocketIOServer(server, {
   cors: {
     origin: '*',
   }
 });
 
-export const mediaCodecs: mediasoup.types.RtpCodecCapability[] = [
+const mediaCodecs: mediasoup.types.RtpCodecCapability[] = [
   {
     kind: 'audio',
     mimeType: 'audio/opus',
@@ -46,7 +45,7 @@ export const mediaCodecs: mediasoup.types.RtpCodecCapability[] = [
   }
 ];
 
-export type Room = {
+type Room = {
   router: mediasoup.types.Router;
   peers: string[];
   screenShared: string;
@@ -54,9 +53,9 @@ export type Room = {
   process?: import('child_process').ChildProcess;
 };
 
-export type RecordingTrackType = 'audio' | 'video' | 'screen';
+type RecordingTrackType = 'audio' | 'video' | 'screen';
 
-export type RecordingEntry = {
+type RecordingEntry = {
   producer: mediasoup.types.Producer;
   kind: RecordingTrackType;
   ports: {
@@ -65,7 +64,7 @@ export type RecordingEntry = {
   };
 };
 
-export type Peer = {
+type Peer = {
   socket: Socket;
   roomId: string;
   transports: string[];
@@ -75,7 +74,7 @@ export type Peer = {
   recordings:RecordingEntry[]
 };
 
-export type TransportData = {
+type TransportData = {
   socketId: string;
   transport: mediasoup.types.WebRtcTransport;
   roomId: string;
@@ -83,14 +82,14 @@ export type TransportData = {
   isConnected?: boolean;
 };
 
-export type ProducerData = {
+type ProducerData = {
   socketId: string;
   producer: mediasoup.types.Producer;
   roomId: string;
   appData: { kind: string };
 };
 
-export type ConsumerData = {
+type ConsumerData = {
   socketId: string;
   consumer: mediasoup.types.Consumer;
   roomId: string;
@@ -102,42 +101,6 @@ io.on('connect', async (socket: Socket) => {
   socket.emit('connection-success', { socketId: socket.id });
 
   const worker = await workerPromise;
-
-  function startRecording(roomId : string) : boolean{
-    const room=rooms[roomId];
-    if(!room){
-      console.log(`Room ${roomId} not found`);
-      return false;
-    }
-    const roomPeers = room.peers.map(socketId => peers[socketId]).filter(p => !!p) as Peer[];
-    const allRecordings: RecordingEntry[] = roomPeers.flatMap(p => p.recordings || []);
-    const outputFile = path.join(__dirname, `../../recordings/room-${roomId}-${Date.now()}.webm`);
-
-    const command = generateGStreamerCommand(allRecordings, outputFile);
-    console.log('Starting GStreamer with command:\n', command.join(' \\\n'));
-    const gst = spawn('gst-launch-1.0', command, { shell: true });
-    
-    gst.stderr.on('data', data => console.error('[GStreamer]', data.toString()));
-    gst.stdout?.on('data', data => console.log('[GStreamer]', data.toString()));
-    gst.on('exit', code => console.log(`GStreamer exited with code ${code}`));
-    room.process = gst;
-    return true;
-  }
-
-  function stopRecording(roomId: string): boolean {
-    const room = rooms[roomId];
-    if (!room?.process) return false;
-
-    try {
-      room.process.kill('SIGINT');
-      console.log('Stopped recording for room:', roomId);
-      delete room.process;
-      return true;
-    } catch (err) {
-      console.error('Failed to stop recording:', err);
-      return false;
-    }
-  }
 
   async function createRoom(roomId: string, socketId: string) {
     let room = rooms[roomId];
@@ -278,7 +241,7 @@ io.on('connect', async (socket: Socket) => {
         console.log('Stopped screen sharing for disconnected peer');
       }
       if (rooms[roomId].peers.length === 0) {
-        stopRecording(roomId);
+        // stopRecording(roomId);
         delete rooms[roomId];
       }
     }
@@ -373,49 +336,6 @@ io.on('connect', async (socket: Socket) => {
     }
     addProducer(producer, roomId, appData);
     informConsumers(roomId, socket.id, producer.id);
-    const {rtpPort,rtcpPort}=await getFreePortPair();
-    const plainTransport = await createPlainTransport(room.router,rtpPort,rtcpPort);
-    const consumer=await consumeProducerToPlainTransport(room.router,producer,plainTransport);
-    console.log('Consumer created:', consumer.id, 'for producer:', producer.id);
-    
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    let mediaKind : RecordingTrackType = 'video';
-
-    if(kind==='audio' || appData.kind=='audio'){
-      mediaKind='audio';
-    } 
-    else{
-      if(kind==='video' && appData.kind=='screen'){
-        mediaKind='screen';
-      }
-      else{
-        mediaKind='video';
-      }
-    } 
-
-    const recording : RecordingEntry={
-      producer: producer,
-      kind: mediaKind,
-      ports: {
-        rtpPort: rtpPort,
-        rtcpPort: rtcpPort,
-      },
-    }  
-    
-    peer.recordings.push(recording);
-
-    producer.on('transportclose', () => {
-      if (plainTransport) {
-        plainTransport.close(); 
-      }
-    });
-
-    producer.on('@close', () => {
-      console.log('Producer closed:', producer.kind);
-      consumer?.close();
-      plainTransport?.close();  
-    });
-
     callback({ id: producer.id, producerExist: peer.producers.length > 1 });
   });
 
@@ -543,14 +463,14 @@ io.on('connect', async (socket: Socket) => {
 
   socket.on('start-recording',(roomId,callback)=>{
     console.log('start recording request for roomId : ',roomId);
-    const response=startRecording(roomId);
-    callback(response);    
+    socket.to(roomId).emit('start-recording');
+    callback(true);    
   })
 
   socket.on('stop-recording',(roomId,callback)=>{
     console.log('stop recording request for roomId : ',roomId);
-    const response=stopRecording(roomId);
-    callback(response);    
+    socket.to(roomId).emit('stop-recording');
+    callback(true);    
   })
 
 });

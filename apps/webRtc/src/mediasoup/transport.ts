@@ -29,22 +29,3 @@ export function createWebRtcTransport(router: mediasoup.types.Router){
         }
     })
 }
-
-export async function createPlainTransport(router : mediasoup.types.Router,rtpPort : number,rtcpPort : number){
-    const plainTransport=await router.createPlainTransport({
-        listenIp: { ip: '127.0.0.1' }, 
-        rtcpMux: false,
-        comedia: false,
-    });
-    await plainTransport.connect({
-        ip: '127.0.0.1',
-        port: rtpPort,
-        rtcpPort: rtcpPort
-    })
-    plainTransport.on('tuple', (tuple) => {
-        console.log('RTP source detected:', tuple);
-    });
-
-    console.log('plainTransport created : ',plainTransport.tuple,plainTransport.rtcpTuple);
-    return plainTransport;
-}

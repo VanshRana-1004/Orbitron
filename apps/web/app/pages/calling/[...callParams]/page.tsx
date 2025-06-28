@@ -5,6 +5,7 @@ import * as mediasoupClient from 'mediasoup-client';
 import { CreateDevice } from 'app/mediasoup-client/device';
 import { RtpCapabilities } from 'mediasoup-client/types';
 import { useRouter } from 'next/navigation';
+import { start } from 'repl';
 
 const SERVER_URL='http://localhost:8080';
 
@@ -28,6 +29,7 @@ export default function Calling(){
     const [width,setWidth]=useState<number>(0);
     const localVideo=useRef<HTMLVideoElement>(null);
     const localScreenVideo=useRef<HTMLVideoElement>(null);
+    const localStreamRef=useRef<MediaStream | null>(null);
 
     const sckt=useRef<Socket>(null);
     const rtpCap=useRef<RtpCapabilities>(null);
@@ -60,6 +62,8 @@ export default function Calling(){
     const screenVideoElements = useRef<Map<string, HTMLVideoElement>>(new Map());
 
     const consumedProducerIds = useRef<Set<string>>(new Set());
+    const chunks = useRef<Blob[]>([]);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
     useEffect(()=>{
         window.addEventListener("resize",()=>{setWidth(window.innerWidth);})
@@ -109,7 +113,6 @@ export default function Calling(){
         newSocket.on('screen-shared', ({producerId}) => {
             setAlreadyShared(true);
             console.log('screen resumed');
-            // remove all the elements from screenSharing and put only the one who you want to place i.e. current producerId 
             const parent=document.getElementById('screenShared');
             if(parent){
                 while (parent.firstChild) {
@@ -159,7 +162,6 @@ export default function Calling(){
             let share=false;
             if(shared!=='') share=true
             setAlreadyShared(share);
-            // remove all the elements from screenSharing and put only the one who you want to place i.e. the given socketId 
             const parent=document.getElementById('screenShared');
             if(parent){
                 while (parent.firstChild) {
@@ -170,13 +172,20 @@ export default function Calling(){
             if(parent && child) parent.appendChild(child);
         })
 
-        newSocket.on('recording-ack',({response})=>{
-            if(response) alert('resources are ready and recording will start')
-            else alert('No recording for this session as resources are busy, but you can continue the call');
-        })
-
         newSocket.on('admin',()=>{
             setAdmin(true);
+        })
+
+        newSocket.on('start-recording',()=>{
+            alert('Recording started successfully');
+            setIsRecording(true);
+            startRecording();
+        })
+
+        newSocket.on('stop-recording',()=>{
+            alert('Recording stopped successfully');
+            setIsRecording(false);
+            stopRecording();
         })
 
     },[])
@@ -197,6 +206,7 @@ export default function Calling(){
             audio:true
         });
         if(localStream && localVideo.current){
+            localStreamRef.current = localStream;
             localVideo.current.srcObject = localStream;
             localVideo.current.muted=true;
             const videoTrack=localStream.getVideoTracks()[0];
@@ -466,13 +476,47 @@ export default function Calling(){
     }
 
     async function handleMic(){
-        if(mic && audioTrackRef.current) audioTrackRef.current.stop();
+        if(mic){
+            if(isRecording) stopRecording();
+            if(audioTrackRef.current) audioTrackRef.current.stop();
+            setMic(false);
+            if(isRecording){
+                if(!camera){
+                    localStreamRef.current = createBlackMutedStream();
+                    startRecording(); 
+                }
+                else startRecording();
+            }  
+        } 
         else if(!mic){
-            const stream=await navigator.mediaDevices.getUserMedia({
-                audio: true
-            })
+            if(isRecording) stopRecording();
+            let stream : MediaStream | null = null;
+            if(camera){
+                stream=await navigator.mediaDevices.getUserMedia({
+                    video:{
+                        width:{
+                            min:480,
+                            max:1300
+                        },
+                        height:{
+                            min:282,
+                            max:700
+                        }
+                    },
+                    audio: true
+                })
+            }
+            else{
+                stream=await navigator.mediaDevices.getUserMedia({
+                    audio: true
+                })
+            }
+            const videoTrack=stream.getVideoTracks()[0];
             const audioTrack=stream.getAudioTracks()[0];
-            if(audioTrack && audioTrackRef.current) audioTrackRef.current = audioTrack;
+            if(videoTrackRef.current && videoTrack) videoTrackRef.current=videoTrack;
+            if(audioTrackRef.current && audioTrack) audioTrackRef.current=audioTrack;
+            localStreamRef.current = stream;
+            if(isRecording) startRecording();
             if (!producerTransportRef.current) {
                 console.error('Producer transport not initialized.');
                 return;
@@ -487,31 +531,65 @@ export default function Calling(){
                 audioTrackRef.current = audioTrack;
                 console.log('Replaced track in existing producer');
             }
+            setMic(true);
         }
-        setMic(!mic);
     }
 
     async function handleCamera(){
-        if(camera && videoTrackRef.current) videoTrackRef.current.stop();
-        else if(!camera){
-            const stream=await navigator.mediaDevices.getUserMedia({
-                video:{
-                    width:{
-                        min:480,
-                        max:1300
-                    },
-                    height:{
-                        min:282,
-                        max:700
-                    }
+        if(camera){
+            if(isRecording) stopRecording();
+            if(videoTrackRef.current) videoTrackRef.current.stop();
+            setCamera(false);
+            if(isRecording){
+                if(!mic){
+                    localStreamRef.current = createBlackMutedStream();
+                    startRecording(); 
                 }
-            });
-            if(localVideo.current && stream){
-                localVideo.current.srcObject = stream;
-                localVideo.current.muted=true;
+                else startRecording();
+            } 
+        } 
+        else if(!camera){
+            if(isRecording) stopRecording();
+            let stream : MediaStream | null = null;
+            if(mic){
+                stream=await navigator.mediaDevices.getUserMedia({
+                    video:{
+                        width:{
+                            min:480,
+                            max:1300
+                        },
+                        height:{
+                            min:282,
+                            max:700
+                        }
+                    },
+                    audio: true
+                })
+            }
+            else{
+                stream=await navigator.mediaDevices.getUserMedia({
+                    video:{
+                        width:{
+                            min:480,
+                            max:1300
+                        },
+                        height:{
+                            min:282,
+                            max:700
+                        }
+                    }
+                })
             }
             const videoTrack=stream.getVideoTracks()[0];
-            if(videoTrack && videoTrackRef.current) videoTrackRef.current=videoTrack;
+            const audioTrack=stream.getAudioTracks()[0];
+            if(videoTrackRef.current && videoTrack) videoTrackRef.current=videoTrack;
+            if(audioTrackRef.current && audioTrack) audioTrackRef.current=audioTrack;
+            localStreamRef.current = stream;
+            if(isRecording) startRecording();            
+            if(localVideo.current){
+                localVideo.current.srcObject = stream;
+                localVideo.current.muted=true;
+            }    
             if (!producerTransportRef.current) {
                 console.error('Producer transport not initialized.');
                 return;
@@ -526,8 +604,8 @@ export default function Calling(){
                 videoTrackRef.current = videoTrack;
                 console.log('Replaced track in existing producer');
             }
+            setCamera(true);
         } 
-        setCamera(!camera);
     }
 
     function updateShareScreen(val: boolean) {
@@ -653,7 +731,7 @@ export default function Calling(){
             }
     }
 
-    async function startRecording(){
+    async function requestStartRecording(){
         const socket=sckt.current;
         try{
             await socket?.emit('start-recording',roomId,(response : string)=>{
@@ -661,6 +739,7 @@ export default function Calling(){
                 if(response){
                     alert('resources are ready recording will start in few seconds.')
                     setIsRecording(true);
+                    startRecording();
                 }
                 else{
                     alert('resources are not ready, please try again!');
@@ -672,7 +751,7 @@ export default function Calling(){
         }
     }
 
-    async function stopRecording(){
+    async function requestStopRecording(){
         const socket=sckt.current;
         try{
             await socket?.emit('stop-recording',roomId,(response : string)=>{
@@ -680,6 +759,7 @@ export default function Calling(){
                 if(response){
                     alert('recording stopped successfully.')
                     setIsRecording(false);
+                    stopRecording();
                 }
                 else{
                     alert('error in stop recording, either leave the call or try again later!');
@@ -691,6 +771,85 @@ export default function Calling(){
         }
     } 
 
+    async function startRecording(){
+        if(localStreamRef.current){
+            mediaRecorderRef.current = new MediaRecorder(localStreamRef.current, {
+                mimeType: "video/webm; codecs=vp8,opus"
+            })
+            mediaRecorderRef.current.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    chunks.current.push(event.data);
+                }
+            }
+            mediaRecorderRef.current.start(1000); 
+        }
+    }
+
+    async function stopRecording(){
+        if (mediaRecorderRef.current) {
+            mediaRecorderRef.current.onstop = () => {
+                const clipContainer = document.createElement("article");
+                const clipLabel = document.createElement("p");
+                const video = document.createElement("video");
+                const deleteButton = document.createElement("button");
+                clipContainer.classList.add("clip");
+                video.setAttribute("controls", "");
+                video.width = 480;
+                deleteButton.textContent = "Delete";
+                const blob = new Blob(chunks.current, { type: "video/webm" });
+                chunks.current = [];
+                const videoURL = URL.createObjectURL(blob);
+                video.src = videoURL;
+                deleteButton.onclick = () => {
+                    clipContainer.remove();
+                };
+
+                clipContainer.appendChild(video);
+                clipContainer.appendChild(clipLabel);
+                clipContainer.appendChild(deleteButton);
+                const parent=document.getElementById('chunks');
+                if(parent) parent.appendChild(clipContainer); 
+            }
+            mediaRecorderRef.current.stop(); 
+        }
+    }
+
+    function createBlackMutedStream(): MediaStream {
+        const canvas = document.createElement("canvas");
+        canvas.width = 640;
+        canvas.height = 480;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return new MediaStream();
+        let animationFrameId: number;
+        function drawBlackFrame() {
+            if(ctx) ctx.fillStyle = "black";
+            if(ctx) ctx.fillRect(0, 0, canvas.width, canvas.height);
+            animationFrameId = requestAnimationFrame(drawBlackFrame);
+        }
+        drawBlackFrame(); 
+
+        const blackVideoTrack = canvas.captureStream(10).getVideoTracks()[0];
+
+        const audioCtx = new AudioContext();
+        const oscillator = audioCtx.createOscillator();
+        oscillator.frequency.value = 0;
+        const gain = audioCtx.createGain();
+        gain.gain.value = 0; 
+        oscillator.connect(gain).connect(audioCtx.destination);
+
+        const dst = audioCtx.createMediaStreamDestination();
+        gain.connect(dst);
+        oscillator.start();
+
+        const silentAudioTrack = dst.stream.getAudioTracks()[0];
+
+        const fallbackStream = new MediaStream();
+        if (blackVideoTrack) fallbackStream.addTrack(blackVideoTrack);
+        if (silentAudioTrack) fallbackStream.addTrack(silentAudioTrack);
+
+        return fallbackStream;
+    }
+
     return <div className="flex h-screen w-screen bg-zinc-900">
         <div className='flex w-full backdrop-blur-xs bg-white/10 fixed top-0 px-20 py-2 gap-5 z-50'>
             <div className='px-2 py-1'>{`call : ${callName}`}</div>
@@ -698,11 +857,12 @@ export default function Calling(){
             <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={handleCamera}>{!camera ? 'on camera' : 'off camera'}</div>
             <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={handleMic}>{!mic ? 'on mic' : 'off mic'}</div>
             <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={handleScreenShare}>{!shareScreen ? 'share screen' : 'stop screen sharing'}</div>
-            {admin && !isRecording && <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={startRecording}>record</div>}
-            {admin && isRecording && <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={stopRecording}>stop recording</div>}
-            {admin && isRecording && <div className='px-2 py-1'>Recording</div>}
+            {admin && !isRecording && <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={requestStartRecording}>record</div>}
+            {admin && isRecording && <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={requestStopRecording}>stop recording</div>}
+            {isRecording && <div className='px-2 py-1'>Recording</div>}
         </div>
         <video ref={localVideo} playsInline autoPlay className={`fixed ${peers>0 ? 'top-16 right-5 w-56 h-30 rounded border border-gray-300' : 'top-0 left-1/2 -translate-x-1/2 w-screen h-screen rounded'} `}></video>
+        <div id="chunks" className='w-full h-auto grid grid-cols-2 gap-x-5 gap-y-6 justify-items-center px-10 py-6 border border-gray-400 rounded-xl'></div>
         <div style={{display:peers>0?'block':'none'}} className='w-[80%] overflow-y-scroll py-12'>
             <div className="flex flex-col gap-10 p-4 items-center">
                 <div id="screenShared" className='border border-zinc-700 rounded w-[100%] h-[100%] flex justify-center items-center' style={{display:alreadyShared?'block':'none'}}/>
