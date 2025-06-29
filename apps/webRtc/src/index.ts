@@ -50,18 +50,6 @@ type Room = {
   peers: string[];
   screenShared: string;
   isRecording : boolean;
-  process?: import('child_process').ChildProcess;
-};
-
-type RecordingTrackType = 'audio' | 'video' | 'screen';
-
-type RecordingEntry = {
-  producer: mediasoup.types.Producer;
-  kind: RecordingTrackType;
-  ports: {
-    rtpPort: number;
-    rtcpPort: number;
-  };
 };
 
 type Peer = {
@@ -71,7 +59,6 @@ type Peer = {
   producers: mediasoup.types.Producer[];
   consumers: string[];
   peerDetails: { name: string };
-  recordings:RecordingEntry[]
 };
 
 type TransportData = {
@@ -130,21 +117,6 @@ io.on('connect', async (socket: Socket) => {
     }
   }
 
-  async function consumeProducerToPlainTransport(
-    router: mediasoup.types.Router,
-    producer: mediasoup.types.Producer,
-    plainTransport: mediasoup.types.PlainTransport
-  ) {
-    const consumer = await plainTransport.consume({
-      producerId: producer.id,
-      rtpCapabilities: router.rtpCapabilities,
-      paused: false,
-    });
-    await consumer.resume();
-
-    return consumer;
-  }
-
   function addTransport(transport: any, roomId: string, consumer: boolean) {
     transports = [
       ...transports,
@@ -157,7 +129,6 @@ io.on('connect', async (socket: Socket) => {
       producers: peers[socket.id]?.producers ?? [],
       consumers: peers[socket.id]?.consumers ?? [],
       peerDetails: peers[socket.id]?.peerDetails ?? { name: '' },
-      recordings:peers[socket.id]?.recordings??[]
     };
   }
 
@@ -173,7 +144,6 @@ io.on('connect', async (socket: Socket) => {
       producers: [...(peers[socket.id]?.producers ?? []), producer],
       consumers: peers[socket.id]?.consumers ?? [],
       peerDetails: peers[socket.id]?.peerDetails ?? { name: '' },
-      recordings:peers[socket.id]?.recordings??[]
     };
   }
 
@@ -189,7 +159,6 @@ io.on('connect', async (socket: Socket) => {
       producers: peers[socket.id]?.producers ?? [],
       consumers: [...(peers[socket.id]?.consumers ?? []), consumer.id],
       peerDetails: peers[socket.id]?.peerDetails ?? { name: '' },
-      recordings:peers[socket.id]?.recordings??[]
     };
   }
 
@@ -258,13 +227,13 @@ io.on('connect', async (socket: Socket) => {
       producers: [],
       consumers: [],
       peerDetails: { name: '' },
-      recordings:[]
     };
     const rtpCapabilities = router?.rtpCapabilities;
     callback(rtpCapabilities);
     const room = rooms[roomId];
     if (room) {
       socket.emit('self-screen-ack', { shared: room.screenShared });
+      socket.emit('recording-ack', { isRecording: room.isRecording });
     }
   });
 
@@ -464,12 +433,14 @@ io.on('connect', async (socket: Socket) => {
   socket.on('start-recording',(roomId,callback)=>{
     console.log('start recording request for roomId : ',roomId);
     socket.to(roomId).emit('start-recording');
+    if (rooms[roomId]) rooms[roomId].isRecording = true;
     callback(true);    
   })
 
   socket.on('stop-recording',(roomId,callback)=>{
     console.log('stop recording request for roomId : ',roomId);
     socket.to(roomId).emit('stop-recording');
+    if (rooms[roomId]) rooms[roomId].isRecording = false;
     callback(true);    
   })
 

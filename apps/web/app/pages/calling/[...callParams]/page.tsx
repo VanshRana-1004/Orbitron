@@ -5,7 +5,6 @@ import * as mediasoupClient from 'mediasoup-client';
 import { CreateDevice } from 'app/mediasoup-client/device';
 import { RtpCapabilities } from 'mediasoup-client/types';
 import { useRouter } from 'next/navigation';
-import { start } from 'repl';
 
 const SERVER_URL='http://localhost:8080';
 
@@ -64,6 +63,11 @@ export default function Calling(){
     const consumedProducerIds = useRef<Set<string>>(new Set());
     const chunks = useRef<Blob[]>([]);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const timeOutRef=useRef<NodeJS.Timeout | null>(null);
+
+    const screenRecorderRef = useRef<MediaRecorder | null>(null);
+    const screenChunks = useRef<Blob[]>([]);
+    const screenTimeOutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(()=>{
         window.addEventListener("resize",()=>{setWidth(window.innerWidth);})
@@ -180,12 +184,23 @@ export default function Calling(){
             alert('Recording started successfully');
             setIsRecording(true);
             startRecording();
+            if(shareScreenRef.current) startSharedScreenRecording();
         })
 
         newSocket.on('stop-recording',()=>{
             alert('Recording stopped successfully');
             setIsRecording(false);
-            stopRecording();
+            stopRecording(false);
+            if(shareScreenRef.current) stopSharedScreenRecording(false);
+        })
+        
+        newSocket.on('recording-ack',({isRecording})=>{
+            if(isRecording){
+                setIsRecording(true);
+                startRecording();
+                if(shareScreenRef.current) startSharedScreenRecording();
+                alert('recording started successfully');
+            }
         })
 
     },[])
@@ -477,19 +492,16 @@ export default function Calling(){
 
     async function handleMic(){
         if(mic){
-            if(isRecording) stopRecording();
+            if(isRecording) stopRecording(false);
             if(audioTrackRef.current) audioTrackRef.current.stop();
             setMic(false);
             if(isRecording){
-                if(!camera){
-                    localStreamRef.current = createBlackMutedStream();
-                    startRecording(); 
-                }
-                else startRecording();
+                if(!camera) localStreamRef.current = createBlackMutedStream();
+                startRecording();
             }  
         } 
         else if(!mic){
-            if(isRecording) stopRecording();
+            if(isRecording) stopRecording(false);
             let stream : MediaStream | null = null;
             if(camera){
                 stream=await navigator.mediaDevices.getUserMedia({
@@ -516,7 +528,7 @@ export default function Calling(){
             if(videoTrackRef.current && videoTrack) videoTrackRef.current=videoTrack;
             if(audioTrackRef.current && audioTrack) audioTrackRef.current=audioTrack;
             localStreamRef.current = stream;
-            if(isRecording) startRecording();
+            if(isRecording) startRecording();            
             if (!producerTransportRef.current) {
                 console.error('Producer transport not initialized.');
                 return;
@@ -537,19 +549,16 @@ export default function Calling(){
 
     async function handleCamera(){
         if(camera){
-            if(isRecording) stopRecording();
+            if(isRecording) stopRecording(false);
             if(videoTrackRef.current) videoTrackRef.current.stop();
             setCamera(false);
             if(isRecording){
-                if(!mic){
-                    localStreamRef.current = createBlackMutedStream();
-                    startRecording(); 
-                }
-                else startRecording();
+                if(!mic) localStreamRef.current = createBlackMutedStream();
+                startRecording();
             } 
         } 
         else if(!camera){
-            if(isRecording) stopRecording();
+            if(isRecording) stopRecording(false);
             let stream : MediaStream | null = null;
             if(mic){
                 stream=await navigator.mediaDevices.getUserMedia({
@@ -585,7 +594,7 @@ export default function Calling(){
             if(videoTrackRef.current && videoTrack) videoTrackRef.current=videoTrack;
             if(audioTrackRef.current && audioTrack) audioTrackRef.current=audioTrack;
             localStreamRef.current = stream;
-            if(isRecording) startRecording();            
+            if(isRecording) startRecording();
             if(localVideo.current){
                 localVideo.current.srcObject = stream;
                 localVideo.current.muted=true;
@@ -638,6 +647,7 @@ export default function Calling(){
                 screenTrackRef.current = null;
                 updateShareScreen(false);
                 if (socket) socket.emit('stop-sharing');
+                stopSharedScreenRecording(false);
                 return;
             }
 
@@ -710,6 +720,7 @@ export default function Calling(){
 
                 updateShareScreen(true);
                 console.log('Screen sharing active');
+                if(shareScreenRef.current) startSharedScreenRecording();
             } catch (err) {
                 if (
                     typeof err === 'object' &&
@@ -740,6 +751,7 @@ export default function Calling(){
                     alert('resources are ready recording will start in few seconds.')
                     setIsRecording(true);
                     startRecording();
+                    if(shareScreenRef.current) startSharedScreenRecording();
                 }
                 else{
                     alert('resources are not ready, please try again!');
@@ -759,7 +771,8 @@ export default function Calling(){
                 if(response){
                     alert('recording stopped successfully.')
                     setIsRecording(false);
-                    stopRecording();
+                    stopRecording(false);
+                    if(shareScreenRef.current) stopSharedScreenRecording(false);
                 }
                 else{
                     alert('error in stop recording, either leave the call or try again later!');
@@ -770,9 +783,9 @@ export default function Calling(){
             console.log('unknown error while stopping recording.')
         }
     } 
-
-    async function startRecording(){
-        if(localStreamRef.current){
+    
+    function startRecording(){
+        if(localStreamRef.current){            
             mediaRecorderRef.current = new MediaRecorder(localStreamRef.current, {
                 mimeType: "video/webm; codecs=vp8,opus"
             })
@@ -782,12 +795,20 @@ export default function Calling(){
                 }
             }
             mediaRecorderRef.current.start(1000); 
+            timeOutRef.current = setTimeout(() => {
+                stopRecording(true);
+            },30000);
         }
     }
 
-    async function stopRecording(){
+    function stopRecording(flag : boolean){
+        if(timeOutRef.current) {
+            clearTimeout(timeOutRef.current);
+            timeOutRef.current = null;
+        }
         if (mediaRecorderRef.current) {
             mediaRecorderRef.current.onstop = () => {
+                console.log('request to stop recording');
                 const clipContainer = document.createElement("article");
                 const clipLabel = document.createElement("p");
                 const video = document.createElement("video");
@@ -810,8 +831,9 @@ export default function Calling(){
                 const parent=document.getElementById('chunks');
                 if(parent) parent.appendChild(clipContainer); 
             }
-            mediaRecorderRef.current.stop(); 
+            mediaRecorderRef.current.stop();
         }
+        if(flag) startRecording();
     }
 
     function createBlackMutedStream(): MediaStream {
@@ -848,6 +870,57 @@ export default function Calling(){
         if (silentAudioTrack) fallbackStream.addTrack(silentAudioTrack);
 
         return fallbackStream;
+    }
+
+    function startSharedScreenRecording(){
+        if(screenStreamRef.current){
+            screenRecorderRef.current = new MediaRecorder(screenStreamRef.current, {
+                mimeType: "video/webm; codecs=vp8,opus"
+            })
+            screenRecorderRef.current.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    screenChunks.current.push(event.data);
+                }
+            }
+            screenRecorderRef.current.start(1000);
+            screenTimeOutRef.current = setTimeout(() => {
+                stopSharedScreenRecording(true);
+            },30000);
+        }
+    }
+
+    function stopSharedScreenRecording(flag : boolean){
+        if(screenTimeOutRef.current) {
+            clearTimeout(screenTimeOutRef.current);
+            screenTimeOutRef.current = null;
+        }
+        if(screenRecorderRef.current) {
+            screenRecorderRef.current.onstop = () => {
+                const clipContainer = document.createElement("article");
+                const clipLabel = document.createElement("p");
+                const video = document.createElement("video");
+                const deleteButton = document.createElement("button");
+                clipContainer.classList.add("clip");
+                video.setAttribute("controls", "");
+                video.width = 480;
+                deleteButton.textContent = "Delete";
+                const blob = new Blob(screenChunks.current, { type: "video/webm" });
+                screenChunks.current = [];
+                const videoURL = URL.createObjectURL(blob);
+                video.src = videoURL;
+                deleteButton.onclick = () => {
+                    clipContainer.remove();
+                };
+
+                clipContainer.appendChild(video);
+                clipContainer.appendChild(clipLabel);
+                clipContainer.appendChild(deleteButton);
+                const parent=document.getElementById('chunks');
+                if(parent) parent.appendChild(clipContainer);
+            }
+            screenRecorderRef.current.stop();
+        }
+        if(flag) startSharedScreenRecording();
     }
 
     return <div className="flex h-screen w-screen bg-zinc-900">
