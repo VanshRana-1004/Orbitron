@@ -5,6 +5,7 @@ import * as mediasoup from 'mediasoup';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { CreateWorker } from './mediasoup/worker';
 import { createWebRtcTransport} from './mediasoup/transport';
+
 const recordingsBasePath = path.join(__dirname, 'recordings');
 
 if (!fs.existsSync(recordingsBasePath)) {
@@ -210,7 +211,7 @@ io.on('connect', async (socket: Socket) => {
         console.log('Stopped screen sharing for disconnected peer');
       }
       if (rooms[roomId].peers.length === 0) {
-        // stopRecording(roomId);
+        // i will call merge clips function here
         delete rooms[roomId];
       }
     }

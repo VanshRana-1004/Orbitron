@@ -217,7 +217,6 @@ function OTP(props : otpProps) {
         catch(e){
             console.log(e);            
         }
-        // next stepis to verify the OTP and to set up a strong password
     }
     function resend(){
         if(props.email!=""  && props.firstName!="" && props.lastName!=""){

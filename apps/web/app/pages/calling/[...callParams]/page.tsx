@@ -5,6 +5,7 @@ import * as mediasoupClient from 'mediasoup-client';
 import { CreateDevice } from 'app/mediasoup-client/device';
 import { RtpCapabilities } from 'mediasoup-client/types';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 const SERVER_URL='http://localhost:8080';
 
@@ -20,8 +21,10 @@ export default function Calling(){
     const [callName,setCallName]=useState<string>("");
     const [roomId,setRoomId]=useState<string>(""); 
     const [userName,setUserName]=useState<string>("");
+    const [userId,setUserId]=useState<string>("");
     const roomIdRef=useRef<string>("");
     const userNameRef=useRef<string>("");
+    const userIdRef=useRef<string>("");
     const callNameRef=useRef<string>("");
     let device : mediasoupClient.Device | null = null;
 
@@ -68,6 +71,41 @@ export default function Calling(){
     const screenRecorderRef = useRef<MediaRecorder | null>(null);
     const screenChunks = useRef<Blob[]>([]);
     const screenTimeOutRef = useRef<NodeJS.Timeout | null>(null);
+    const uploadQueue = useRef<{blob : Blob,type : string}[]>([]);
+    const isUploading = useRef(false);
+
+    const [token,setToken]=useState<string | null>(null);
+    const [authorized,setAuthorized]=useState<boolean>(false);
+    let mediaCount=0;
+
+    useEffect(()=>{
+        const storedToken = localStorage.getItem('token');
+        setToken(storedToken);
+    },[]);
+
+    useEffect(() => {
+        if (!token) return;
+        async function verifyToken() {
+            try{
+                const response = await axios.post('/api/auth/verify-token',{},{
+                    headers: { Authorization: `Bearer ${token}`}
+                })
+                console.log('Token verified successfully:', response.data);
+                const name=response.data.firstName+' '+response.data.lastName;
+                setUserName(name);
+                userNameRef.current=name;
+                setUserId(response.data.id);
+                userIdRef.current=response.data.id;
+                setAuthorized(true);
+            }catch(e){
+                console.log('No token found, redirecting to login');
+                router.push('/pages/login');
+                return;
+            }
+        }
+        verifyToken();
+        console.log('token in dashboard : ', token);
+    }, [token]);
 
     useEffect(()=>{
         window.addEventListener("resize",()=>{setWidth(window.innerWidth);})
@@ -77,9 +115,7 @@ export default function Calling(){
     },[])
 
     useEffect(()=>{
-        const name : string=localStorage.getItem('userName') ?? '';
-        if(name!='') userNameRef.current=name,setUserName(name);
-        else console.log('no name found in localstorage') 
+        if(!authorized) return;
         
         const url=window.location.pathname;
         const segments = url.split('/'); 
@@ -203,7 +239,7 @@ export default function Calling(){
             }
         })
 
-    },[])
+    },[authorized])
 
     async function getLocalStream(){
         
@@ -808,28 +844,10 @@ export default function Calling(){
         }
         if (mediaRecorderRef.current) {
             mediaRecorderRef.current.onstop = () => {
-                console.log('request to stop recording');
-                const clipContainer = document.createElement("article");
-                const clipLabel = document.createElement("p");
-                const video = document.createElement("video");
-                const deleteButton = document.createElement("button");
-                clipContainer.classList.add("clip");
-                video.setAttribute("controls", "");
-                video.width = 480;
-                deleteButton.textContent = "Delete";
                 const blob = new Blob(chunks.current, { type: "video/webm" });
                 chunks.current = [];
-                const videoURL = URL.createObjectURL(blob);
-                video.src = videoURL;
-                deleteButton.onclick = () => {
-                    clipContainer.remove();
-                };
-
-                clipContainer.appendChild(video);
-                clipContainer.appendChild(clipLabel);
-                clipContainer.appendChild(deleteButton);
-                const parent=document.getElementById('chunks');
-                if(parent) parent.appendChild(clipContainer); 
+                uploadQueue.current.push({blob : blob,type :'media'});
+                processUploadQueue();
             }
             mediaRecorderRef.current.stop();
         }
@@ -896,31 +914,87 @@ export default function Calling(){
         }
         if(screenRecorderRef.current) {
             screenRecorderRef.current.onstop = () => {
-                const clipContainer = document.createElement("article");
-                const clipLabel = document.createElement("p");
-                const video = document.createElement("video");
-                const deleteButton = document.createElement("button");
-                clipContainer.classList.add("clip");
-                video.setAttribute("controls", "");
-                video.width = 480;
-                deleteButton.textContent = "Delete";
                 const blob = new Blob(screenChunks.current, { type: "video/webm" });
                 screenChunks.current = [];
-                const videoURL = URL.createObjectURL(blob);
-                video.src = videoURL;
-                deleteButton.onclick = () => {
-                    clipContainer.remove();
-                };
-
-                clipContainer.appendChild(video);
-                clipContainer.appendChild(clipLabel);
-                clipContainer.appendChild(deleteButton);
-                const parent=document.getElementById('chunks');
-                if(parent) parent.appendChild(clipContainer);
+                uploadQueue.current.push({blob : blob,type : 'screen'});
+                processUploadQueue();
             }
             screenRecorderRef.current.stop();
         }
         if(flag) startSharedScreenRecording();
+    }
+
+    async function uploadClipToCloudinary(blob: Blob,type : string, timestamp: string) {
+        try{
+            console.log(blob);
+            console.log(userIdRef.current);
+            const formData = new FormData();
+            formData.append('file', blob, `clip-${timestamp}.webm`);
+            formData.append('timestamp', timestamp);
+            formData.append('roomId',roomIdRef.current);
+            formData.append('id',userIdRef.current);
+            formData.append('callName',callNameRef.current);
+            formData.append('type', type);
+            if(type==='media') formData.append('mediaCount', mediaCount.toString()),mediaCount++;
+            else formData.append('screenCount', '0');
+            const response = await axios.post('/api/auth/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            console.log(response);
+        }catch(e){
+            console.error("Error uploading clip to Cloudinary:", e);
+            throw e;
+        }
+    }
+
+    async function processUploadQueue() {
+        if (isUploading.current || uploadQueue.current.length === 0) return;
+        isUploading.current = true;
+        const data = uploadQueue.current.shift();
+        const timestamp = new Date().toISOString();
+        if (data) {
+            try {
+                console.log(data.type+' '+data.blob);
+                await uploadClipToCloudinary(data.blob,data.type,timestamp);
+            } catch (err) {
+                console.error("Upload failed, re-adding to queue...");
+                uploadQueue.current.unshift(data); 
+            }
+        }
+        isUploading.current = false;
+        if (uploadQueue.current.length > 0) {
+            setTimeout(processUploadQueue, 100); 
+        }
+    }
+
+    function leaveRoom(){
+        if(isRecording){
+            stopRecording(false);
+            if(shareScreenRef.current) stopSharedScreenRecording(false);
+        }
+        if(localStreamRef.current){
+            localStreamRef.current.getTracks().forEach(track => track.stop());
+            localStreamRef.current = null;
+        }
+        if(screenStreamRef.current){
+            screenStreamRef.current.getTracks().forEach(track => track.stop());
+            screenStreamRef.current = null;
+        }
+        if (audioTrackRef.current) {
+            audioTrackRef.current.stop();
+            audioTrackRef.current = null;
+        }
+        if (videoTrackRef.current) {
+            videoTrackRef.current.stop();
+            videoTrackRef.current = null;
+        }
+        const socket=sckt.current;
+        if (socket && socket.connected) {
+            socket.disconnect(); 
+        }
+        router.push('/pages/dashboard')
     }
 
     return <div className="flex h-screen w-screen bg-zinc-900">
@@ -933,9 +1007,9 @@ export default function Calling(){
             {admin && !isRecording && <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={requestStartRecording}>record</div>}
             {admin && isRecording && <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={requestStopRecording}>stop recording</div>}
             {isRecording && <div className='px-2 py-1'>Recording</div>}
+            <div className='bg-red-500 px-2 py-1 border cursor-pointer rounded' onClick={leaveRoom}>Leave</div>
         </div>
         <video ref={localVideo} playsInline autoPlay className={`fixed ${peers>0 ? 'top-16 right-5 w-56 h-30 rounded border border-gray-300' : 'top-0 left-1/2 -translate-x-1/2 w-screen h-screen rounded'} `}></video>
-        <div id="chunks" className='w-full h-auto grid grid-cols-2 gap-x-5 gap-y-6 justify-items-center px-10 py-6 border border-gray-400 rounded-xl'></div>
         <div style={{display:peers>0?'block':'none'}} className='w-[80%] overflow-y-scroll py-12'>
             <div className="flex flex-col gap-10 p-4 items-center">
                 <div id="screenShared" className='border border-zinc-700 rounded w-[100%] h-[100%] flex justify-center items-center' style={{display:alreadyShared?'block':'none'}}/>
