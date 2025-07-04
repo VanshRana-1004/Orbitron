@@ -1,17 +1,9 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import * as http from 'http';
 import * as mediasoup from 'mediasoup';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { CreateWorker } from './mediasoup/worker';
+import { finalize } from './prepare-recording/finalize';
 import { createWebRtcTransport} from './mediasoup/transport';
-
-const recordingsBasePath = path.join(__dirname, 'recordings');
-
-if (!fs.existsSync(recordingsBasePath)) {
-  fs.mkdirSync(recordingsBasePath, { recursive: true });
-  console.log('Created base recordings folder');
-}
 
 const PORT = 8080;
 const server = http.createServer();
@@ -211,7 +203,7 @@ io.on('connect', async (socket: Socket) => {
         console.log('Stopped screen sharing for disconnected peer');
       }
       if (rooms[roomId].peers.length === 0) {
-        // i will call merge clips function here
+        await finalize(roomId);
         delete rooms[roomId];
       }
     }

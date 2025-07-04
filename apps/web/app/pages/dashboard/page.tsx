@@ -30,25 +30,6 @@ export default function Dashboard() {
         console.log('token in useEffect : ', storedToken);
     }, []);
 
-    useEffect(()=>{
-        if(!authorized) return;
-        async function getClips(){
-            try{
-                console.log(userIdRef.current);
-                const response=await axios.get('/api/auth/get-clips',{
-                    params:{userId:userIdRef.current}
-                }) 
-                console.log(response);
-                setClips(response.data);
-            }
-            catch(e){
-                console.log('error in fetching all the previous clips',e);
-                setAgain(again=>!again);
-            }
-        }
-        setTimeout(getClips,2000);
-    },[authorized,again]);
-
     useEffect(() => {
         if (!token) return;
         async function verifyToken() {
@@ -131,16 +112,6 @@ export default function Dashboard() {
                         <button onClick={joinCall} className="flex justify-center items-center px-3 text-sm font-semibold bg-zinc-700 text-white">Join</button> 
                     </div>
                 </div>
-            </div>
-            <div className='w-full border min-h-full h-auto grid grid-cols-2 justify-items-center gap-x-5 gap-y-6 px-10 py-6'>
-                {clips.map((clip) => (
-                    <div key={clip.public_id} className="flex flex-col h-auto items-center border p-3 rounded-xl shadow-md">
-                        <video src={clip.url} controls className="w-full rounded-md" />
-                        <div className="mt-2 text-sm text-gray-700 text-center">
-                            <p><strong>Time:</strong> {new Date(clip.createdAt).toLocaleString()}</p>
-                        </div>
-                    </div>
-                ))}
             </div>
         </div>
     </div>

@@ -71,12 +71,11 @@ export default function Calling(){
     const screenRecorderRef = useRef<MediaRecorder | null>(null);
     const screenChunks = useRef<Blob[]>([]);
     const screenTimeOutRef = useRef<NodeJS.Timeout | null>(null);
-    const uploadQueue = useRef<{blob : Blob,type : string}[]>([]);
+    const uploadQueue = useRef<{blob : Blob,type : string,timeStamp: string}[]>([]);
     const isUploading = useRef(false);
 
     const [token,setToken]=useState<string | null>(null);
     const [authorized,setAuthorized]=useState<boolean>(false);
-    let mediaCount=0;
 
     useEffect(()=>{
         const storedToken = localStorage.getItem('token');
@@ -846,7 +845,8 @@ export default function Calling(){
             mediaRecorderRef.current.onstop = () => {
                 const blob = new Blob(chunks.current, { type: "video/webm" });
                 chunks.current = [];
-                uploadQueue.current.push({blob : blob,type :'media'});
+                const timeStamp = new Date().toISOString();
+                uploadQueue.current.push({blob : blob,type :'media',timeStamp : timeStamp});
                 processUploadQueue();
             }
             mediaRecorderRef.current.stop();
@@ -916,7 +916,8 @@ export default function Calling(){
             screenRecorderRef.current.onstop = () => {
                 const blob = new Blob(screenChunks.current, { type: "video/webm" });
                 screenChunks.current = [];
-                uploadQueue.current.push({blob : blob,type : 'screen'});
+                const timeStamp = new Date().toISOString();
+                uploadQueue.current.push({blob : blob,type : 'screen',timeStamp : timeStamp});
                 processUploadQueue();
             }
             screenRecorderRef.current.stop();
@@ -924,19 +925,17 @@ export default function Calling(){
         if(flag) startSharedScreenRecording();
     }
 
-    async function uploadClipToCloudinary(blob: Blob,type : string, timestamp: string) {
+    async function uploadClipToCloudinary(blob: Blob,type : string, timeStamp: string) {
         try{
             console.log(blob);
             console.log(userIdRef.current);
             const formData = new FormData();
-            formData.append('file', blob, `clip-${timestamp}.webm`);
-            formData.append('timestamp', timestamp);
+            formData.append('file', blob, `clip-${timeStamp}.webm`);
+            formData.append('timeStamp', timeStamp);
             formData.append('roomId',roomIdRef.current);
             formData.append('id',userIdRef.current);
             formData.append('callName',callNameRef.current);
             formData.append('type', type);
-            if(type==='media') formData.append('mediaCount', mediaCount.toString()),mediaCount++;
-            else formData.append('screenCount', '0');
             const response = await axios.post('/api/auth/upload', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -953,11 +952,11 @@ export default function Calling(){
         if (isUploading.current || uploadQueue.current.length === 0) return;
         isUploading.current = true;
         const data = uploadQueue.current.shift();
-        const timestamp = new Date().toISOString();
+        
         if (data) {
             try {
                 console.log(data.type+' '+data.blob);
-                await uploadClipToCloudinary(data.blob,data.type,timestamp);
+                await uploadClipToCloudinary(data.blob,data.type,data.timeStamp);
             } catch (err) {
                 console.error("Upload failed, re-adding to queue...");
                 uploadQueue.current.unshift(data); 

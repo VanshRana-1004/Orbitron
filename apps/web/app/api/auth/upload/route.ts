@@ -7,14 +7,14 @@ cloudinary.config({
 export async function POST(req: Request) {
     const formData = await req.formData();
     const file = formData.get("file") as Blob | null;
-    const timestamp = formData.get("timestamp") as string | null;
+    const timeStamp = formData.get("timeStamp") as string | null;
     const roomId = formData.get("roomId") as string | null;
     const userId = formData.get("id") as string | null;
     const callName = formData.get("callName") as string | null;
     const count=formData.get("mediaCount") as string | null;
     const type = formData.get("type") as string | null;
-    if (!file || !timestamp) return new Response("Missing file or timestamp", { status: 400 });
-    console.log("Upload request received, Blob size:", file.size,"; Timestamp:", timestamp);
+    if (!file || !timeStamp) return new Response("Missing file or timeStamp", { status: 400 });
+    console.log("Upload request received, Blob size:", file.size,"; TimeStamp:", timeStamp);
     if(file.size<0) return new Response("File size is zero", { status: 200 });
     const buffer = Buffer.from(await file.arrayBuffer());
     try{
@@ -22,8 +22,8 @@ export async function POST(req: Request) {
             const uploadStream=cloudinary.uploader.upload_stream({
                 resource_type:"auto",
                 folder:"recordings",
-                public_id:`clip-${timestamp}-${Date.now()}`,
-                context: `userId=${userId}|roomId=${roomId}|callName=${callName}|type=${type}|count=${count}`,
+                public_id:`clip-${timeStamp}-${Date.now()}`,
+                context: `userId=${userId}|roomId=${roomId}|callName=${callName}|type=${type}|timeStamp=${timeStamp}`,
             },(error,result)=>{
                 if(error) return reject(error)
                 resolve(result);
