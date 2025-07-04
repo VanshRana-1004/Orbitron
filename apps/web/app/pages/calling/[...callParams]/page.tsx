@@ -929,11 +929,13 @@ export default function Calling(){
         try{
             console.log(blob);
             console.log(userIdRef.current);
+            const socket=sckt.current;
+            const socketId=socket?.id ;
             const formData = new FormData();
             formData.append('file', blob, `clip-${timeStamp}.webm`);
             formData.append('timeStamp', timeStamp);
             formData.append('roomId',roomIdRef.current);
-            formData.append('id',userIdRef.current);
+            formData.append('id',socketId!);
             formData.append('callName',callNameRef.current);
             formData.append('type', type);
             const response = await axios.post('/api/auth/upload', formData, {

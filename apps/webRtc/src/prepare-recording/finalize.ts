@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import {v2 as  cloudinary } from 'cloudinary';
 import { getMediaStreamInfo } from './util';
+import { mergeClips } from './merge-clips';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -11,6 +12,23 @@ cloudinary.config({
     api_key: process.env.CLOUD_API_KEY,
     api_secret: process.env.CLOUD_SECRET,
 })
+
+export interface Clip {
+  userId: string;
+  timeStamp: string;
+  duration: number;
+  localPath: string;
+  hasAudio: boolean;
+  hasVideo: boolean;
+  [key: string]: any;
+}
+
+export interface StreamGroup {
+  type: string;
+  clips: Clip[];
+  mergedPath?: string;
+}
+
 
 async function downloadClip(url: string, filename: string): Promise<string> {
   const folder = path.join(process.cwd(), 'clips');
@@ -34,7 +52,7 @@ async function getClips(roomId: string) {
         .with_field("context")
         .max_results(500)
         .execute();
-    const parsedResults=result.resources.map((clip : any)=>{
+    const parsedResults=result.resources.map((clip : Clip)=>{
         const context=clip.context || {};
         return {
             url: clip.secure_url,
@@ -84,9 +102,27 @@ async function getClips(roomId: string) {
         }
     }
     console.log("User Streams:", userStreams);
+    
+    for(const key in userStreams){
+        if(!userStreams[key] || userStreams[key].length === 0) continue;
+        for (const stream of userStreams[key]) {
+            stream.clips.sort((a,b)=>{
+                return Date.parse(a.timestamp) - Date.parse(b.timestamp);
+            })
+        }
+    }
+
+    for(const key in userStreams){
+        if(!userStreams[key] || userStreams[key].length === 0) continue;
+        for(const stream of userStreams[key]) mergeClips(stream.clips,stream.type,roomId,stream.clips[0].userId,stream.clips[0].timeStamp);
+    }
 
 }
 
 export async function finalize(roomId : string){
     setTimeout(()=>{getClips(roomId)},10000);   
 }
+
+// join the merged clips into final video with dynamic layouts as per videos 
+// use queue based approach of merging and joining clips to final video
+// when a user leave a call make sure to call finalize function after clips are uploaded to cloudinary other wise we will miss some
