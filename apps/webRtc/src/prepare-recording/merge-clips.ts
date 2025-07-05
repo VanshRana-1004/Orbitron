@@ -18,6 +18,10 @@ async function normalizeClip(inputPath: string, outputPath: string): Promise<voi
   await execPromise(cmd);
 }
 
+function generateVideoFilter(inputIndex: number, outputLabel: string, targetWidth = 1280, targetHeight = 720) {
+  return `[${inputIndex}:v:0]scale=${targetWidth}:${targetHeight}:force_original_aspect_ratio=decrease,pad=${targetWidth}:${targetHeight}:(ow-iw)/2:(oh-ih)/2:black,setsar=1[${outputLabel}]`;
+}
+
 export async function mergeClips(clips: any[], type: string, roomId: string,userId : string,timeStamp : string) {
   const folder = path.join(process.cwd(), 'updated-clips',roomId);
   try {
@@ -59,13 +63,13 @@ export async function mergeClips(clips: any[], type: string, roomId: string,user
 
     if (hasVideo) {
       const scaledLabel = `v${baseIndex}`;
-      filterParts.push(`[${baseIndex}:v:0]scale=1920:804,setsar=1[${scaledLabel}]`);
-      videoLabel = `[${scaledLabel}]`;      
+      filterParts.push(generateVideoFilter(baseIndex, scaledLabel));
+      videoLabel = `[${scaledLabel}]`;
     } else {
       const duration = await getDuration(file);
-      inputsArray.push(`-f lavfi -t ${duration} -i color=size=1920x868:rate=30:color=black`);
+      inputsArray.push(`-f lavfi -t ${duration} -i color=size=1280x720:rate=30:color=black`);
       const blackLabel = `v${inputIndex}`;
-      filterParts.push(`[${inputIndex}:v:0]scale=1920:868,setsar=1[${blackLabel}]`);
+      filterParts.push(generateVideoFilter(inputIndex, blackLabel));
       videoLabel = `[${blackLabel}]`;
       inputIndex++;
     }
