@@ -33,6 +33,7 @@ export async function mergeClips(clips: any[], type: string, roomId: string,user
     await normalizeClip(f.localPath, outputPath);
   }));
 
+  
   // Read normalized clips
   const normFiles = await fs.readdir(folder);
   const normWebmFiles = normFiles
@@ -42,6 +43,7 @@ export async function mergeClips(clips: any[], type: string, roomId: string,user
   const inputsArray: string[] = [];
   const filterParts: string[] = [];
   let inputIndex = 0;
+  const concatInputParts: string[] = [];
 
   for (const file of normWebmFiles) {
     const { stdout } = await execPromise(`ffprobe -v error -show_entries stream=codec_type -of csv=p=0 "${file}"`);
@@ -56,11 +58,15 @@ export async function mergeClips(clips: any[], type: string, roomId: string,user
     let audioLabel = '';
 
     if (hasVideo) {
-      videoLabel = `[${baseIndex}:v:0]`;
+      const scaledLabel = `v${baseIndex}`;
+      filterParts.push(`[${baseIndex}:v:0]scale=1920:804,setsar=1[${scaledLabel}]`);
+      videoLabel = `[${scaledLabel}]`;      
     } else {
       const duration = await getDuration(file);
-      inputsArray.push(`-f lavfi -t ${duration} -i color=size=640x480:rate=30:color=black`);
-      videoLabel = `[${inputIndex}:v:0]`;
+      inputsArray.push(`-f lavfi -t ${duration} -i color=size=1920x868:rate=30:color=black`);
+      const blackLabel = `v${inputIndex}`;
+      filterParts.push(`[${inputIndex}:v:0]scale=1920:868,setsar=1[${blackLabel}]`);
+      videoLabel = `[${blackLabel}]`;
       inputIndex++;
     }
 
@@ -69,15 +75,18 @@ export async function mergeClips(clips: any[], type: string, roomId: string,user
     } else {
       const duration = await getDuration(file);
       inputsArray.push(`-f lavfi -t ${duration} -i anullsrc=channel_layout=mono:sample_rate=48000`);
-      audioLabel = `[${inputIndex}:a:0]`;
+      audioLabel = `[a${inputIndex}]`;
       inputIndex++;
     }
 
-    filterParts.push(`${videoLabel}${audioLabel}`);
+    concatInputParts.push(`${videoLabel}${audioLabel}`);
   }
 
+
   const inputs = inputsArray.join(' ');
-  const filter = `${filterParts.join('')}concat=n=${normWebmFiles.length}:v=1:a=1[outv][outa]`;
+  const videoScaleFilters = filterParts.join(';');
+  const concatInputs = concatInputParts.join('');
+  const filter = `${videoScaleFilters};${concatInputs}concat=n=${concatInputParts.length}:v=1:a=1[outv][outa]`;
   const outputFilePath = path.join(folder, `${type}-${Date.parse(timeStamp)}-${userId}-final_output.webm`);
 
   const cmd = `ffmpeg ${inputs} -filter_complex "${filter}" -map "[outv]" -map "[outa]" -c:v libvpx -b:v 1M -c:a libvorbis "${outputFilePath}"`;
@@ -86,3 +95,6 @@ export async function mergeClips(clips: any[], type: string, roomId: string,user
   await execPromise(cmd);
   console.log("Merged video saved to", outputFilePath);
 }
+// after merging the clips for a peer (as per their socketId). 
+// then try joining the clips in dynamic layout as per the timeStamp using either GStreamer or ffmpeg.
+// if possible delete the files that are not required now.   
