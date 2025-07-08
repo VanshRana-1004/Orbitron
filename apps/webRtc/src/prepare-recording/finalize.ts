@@ -114,8 +114,12 @@ async function getClips(roomId: string) {
 
     for(const key in userStreams){
         if(!userStreams[key] || userStreams[key].length === 0) continue;
-        for(const stream of userStreams[key]) mergeClips(stream.clips,stream.type,roomId,stream.clips[0].userId,stream.clips[0].timeStamp);
+        for(const stream of userStreams[key]) await mergeClips(stream.clips,stream.type,roomId,stream.clips[0].userId,stream.clips[0].timeStamp);
     }
+
+    // use ffmpeg to join all the merged clips to a single final video with roomId and upload it to cloud
+    // retrieve clips from updated-clips folder which includes media/screen-timestamp-final.webm
+    // now sort these retrieved clips by timestamp and use ffmpeg to join them into a single video
 
 }
 
@@ -126,3 +130,8 @@ export async function finalize(roomId : string){
 // join the merged clips into final video with dynamic layouts as per videos 
 // use queue based approach of merging and joining clips to final video
 // when a user leave a call make sure to call finalize function after clips are uploaded to cloudinary other wise we will miss some
+// also handle the logic that this function should be called only when all the clips are uploaded to cloudinary 
+
+// after merging the clips for a peer (as per their socketId). 
+// then try joining the clips in dynamic layout as per the timeStamp using either GStreamer or ffmpeg.
+// if possible delete the files that are not required now.   

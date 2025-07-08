@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
 const SERVER_URL='http://localhost:8080';
-
+ 
 export default function Calling(){
     const router=useRouter();
     const [admin,setAdmin]=useState<boolean>(false);
@@ -236,6 +236,11 @@ export default function Calling(){
                 if(shareScreenRef.current) startSharedScreenRecording();
                 alert('recording started successfully');
             }
+        })
+
+        newSocket.on('chunk_ack',({status})=>{
+            if(status) alert('chunk saved successfully')
+            else alert('error in saving chunk')    
         })
 
     },[authorized])
@@ -845,7 +850,7 @@ export default function Calling(){
             mediaRecorderRef.current.onstop = () => {
                 const blob = new Blob(chunks.current, { type: "video/webm" });
                 chunks.current = [];
-                const timeStamp = new Date().toISOString();
+                const timeStamp = String(Date.now() / 1000);
                 uploadQueue.current.push({blob : blob,type :'media',timeStamp : timeStamp});
                 processUploadQueue();
             }
@@ -916,7 +921,7 @@ export default function Calling(){
             screenRecorderRef.current.onstop = () => {
                 const blob = new Blob(screenChunks.current, { type: "video/webm" });
                 screenChunks.current = [];
-                const timeStamp = new Date().toISOString();
+                const timeStamp = String(Date.now() / 1000);
                 uploadQueue.current.push({blob : blob,type : 'screen',timeStamp : timeStamp});
                 processUploadQueue();
             }
@@ -925,27 +930,22 @@ export default function Calling(){
         if(flag) startSharedScreenRecording();
     }
 
-    async function uploadClipToCloudinary(blob: Blob,type : string, timeStamp: string) {
+    async function sendChunkToServer(blob: Blob,type : string, timeStamp: string) {
+        const socket=sckt.current;
+        if(!socket || !socket.id) return;
+        const formData = new FormData();
+        console.log(blob);
+        formData.append('file', blob, `${roomId}_${socket.id}_${type}_${timeStamp}.webm`);
         try{
-            console.log(blob);
-            console.log(userIdRef.current);
-            const socket=sckt.current;
-            const socketId=socket?.id ;
-            const formData = new FormData();
-            formData.append('file', blob, `clip-${timeStamp}.webm`);
-            formData.append('timeStamp', timeStamp);
-            formData.append('roomId',roomIdRef.current);
-            formData.append('id',socketId!);
-            formData.append('callName',callNameRef.current);
-            formData.append('type', type);
-            const response = await axios.post('/api/auth/upload', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
+            console.log('sending clip to server')
+            const res = await fetch(`${SERVER_URL}/upload`, {
+                method: 'POST',
+                body: formData
             });
-            console.log(response);
+            const result = await res.json();
+            console.log('Uploaded via HTTP:', result);
         }catch(e){
-            console.error("Error uploading clip to Cloudinary:", e);
+            console.error("Error sending chunk :", e);
             throw e;
         }
     }
@@ -958,7 +958,7 @@ export default function Calling(){
         if (data) {
             try {
                 console.log(data.type+' '+data.blob);
-                await uploadClipToCloudinary(data.blob,data.type,data.timeStamp);
+                await sendChunkToServer(data.blob,data.type,data.timeStamp);
             } catch (err) {
                 console.error("Upload failed, re-adding to queue...");
                 uploadQueue.current.unshift(data); 

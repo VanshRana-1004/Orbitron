@@ -1,12 +1,39 @@
+import { Request, Response } from 'express';
 import * as http from 'http';
 import * as mediasoup from 'mediasoup';
+import path from 'path';
+import fs from 'fs';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { CreateWorker } from './mediasoup/worker';
 import { finalize } from './prepare-recording/finalize';
 import { createWebRtcTransport} from './mediasoup/transport';
+import express from 'express';
+import multer from 'multer';
+import cors from 'cors';
+
+const app=express();
+app.use(express.json());
+
+app.use(cors({
+  origin: '*', 
+  methods: ['GET', 'POST'],        
+  credentials: true                
+}));
 
 const PORT = 8080;
-const server = http.createServer();
+const server = http.createServer(app);
+
+const uploadsPath = path.join(process.cwd(), 'uploads');
+
+async function ensureUploadsDir() {
+  try {
+    await fs.promises.access(uploadsPath);
+  } catch {
+    await fs.promises.mkdir(uploadsPath);
+    console.log('Created "uploads" directory');
+  }
+}
+ensureUploadsDir();
 
 let workerPromise = CreateWorker();
 let rooms: Record<string, Room> = {};
@@ -109,7 +136,7 @@ io.on('connect', async (socket: Socket) => {
       return router;
     }
   }
-
+ 
   function addTransport(transport: any, roomId: string, consumer: boolean) {
     transports = [
       ...transports,
@@ -203,7 +230,6 @@ io.on('connect', async (socket: Socket) => {
         console.log('Stopped screen sharing for disconnected peer');
       }
       if (rooms[roomId].peers.length === 0) {
-        await finalize(roomId);
         delete rooms[roomId];
       }
     }
@@ -423,7 +449,7 @@ io.on('connect', async (socket: Socket) => {
     } else socket.emit('limit-ack', true);
   });
 
-  socket.on('start-recording',(roomId,callback)=>{
+  socket.on('start-recording',async (roomId,callback)=>{
     console.log('start recording request for roomId : ',roomId);
     socket.to(roomId).emit('start-recording');
     if (rooms[roomId]) rooms[roomId].isRecording = true;
@@ -437,6 +463,38 @@ io.on('connect', async (socket: Socket) => {
     callback(true);    
   })
 
+});
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------------//
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+app.post('/upload', upload.single('file'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({ error: 'No file received' });
+      return;
+    }
+    console.log(req.body);
+    console.log(req.file);
+    const [roomId] = file.originalname.split('_');
+    const saveDir = path.join(uploadsPath, roomId || 'default');
+
+    await fs.promises.mkdir(saveDir, { recursive: true }); 
+
+    const savePath = path.join(saveDir, file.originalname);
+    console.log('roomId folder created')
+
+    await fs.promises.writeFile(savePath, file.buffer); 
+
+    console.log(`Saved: ${savePath}`);
+    res.json({ success: true, path: savePath });
+  } catch (err) {
+    console.error('Error saving file:', err);
+    res.status(500).json({ error: 'Failed to upload file' });
+  }
 });
 
 server.listen(PORT, () => {

@@ -99,6 +99,3 @@ export async function mergeClips(clips: any[], type: string, roomId: string,user
   await execPromise(cmd);
   console.log("Merged video saved to", outputFilePath);
 }
-// after merging the clips for a peer (as per their socketId). 
-// then try joining the clips in dynamic layout as per the timeStamp using either GStreamer or ffmpeg.
-// if possible delete the files that are not required now.   
