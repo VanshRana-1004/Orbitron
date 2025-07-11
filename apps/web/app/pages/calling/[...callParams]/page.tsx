@@ -217,8 +217,10 @@ export default function Calling(){
 
         newSocket.on('start-recording',()=>{
             alert('Recording started successfully');
-            setIsRecording(true);
-            startRecording();
+            setTimeout(()=>{
+                setIsRecording(true);
+                startRecording();
+            },5000);
             if(shareScreenRef.current) startSharedScreenRecording();
         })
 
@@ -850,7 +852,7 @@ export default function Calling(){
             mediaRecorderRef.current.onstop = () => {
                 const blob = new Blob(chunks.current, { type: "video/webm" });
                 chunks.current = [];
-                const timeStamp = String(Date.now() / 1000);
+                const timeStamp = String(Date.now());
                 uploadQueue.current.push({blob : blob,type :'media',timeStamp : timeStamp});
                 processUploadQueue();
             }
@@ -921,7 +923,7 @@ export default function Calling(){
             screenRecorderRef.current.onstop = () => {
                 const blob = new Blob(screenChunks.current, { type: "video/webm" });
                 screenChunks.current = [];
-                const timeStamp = String(Date.now() / 1000);
+                const timeStamp = String(Date.now());
                 uploadQueue.current.push({blob : blob,type : 'screen',timeStamp : timeStamp});
                 processUploadQueue();
             }

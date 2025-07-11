@@ -1,137 +1,145 @@
-import axios from 'axios';
-import fs from 'fs/promises';
 import path from 'path';
-import {v2 as  cloudinary } from 'cloudinary';
-import { getMediaStreamInfo } from './util';
-import { mergeClips } from './merge-clips';
-import dotenv from 'dotenv';
-dotenv.config();
+import fs from 'fs/promises';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { generateTimelineSegments } from './timeline';
+import { layoutGeneration } from './layout';
 
-cloudinary.config({
-    cloud_name: process.env.CLOUD_NAME,
-    api_key: process.env.CLOUD_API_KEY,
-    api_secret: process.env.CLOUD_SECRET,
-})
+const execAsync = promisify(exec);
 
-export interface Clip {
-  userId: string;
-  timeStamp: string;
-  duration: number;
-  localPath: string;
-  hasAudio: boolean;
-  hasVideo: boolean;
-  [key: string]: any;
+export interface Clip{
+    file : string,
+    filePath : string,
+    startTime : number,
+    endTime : number,
+    duration : number
 }
 
-export interface StreamGroup {
-  type: string;
-  clips: Clip[];
-  mergedPath?: string;
-}
-
-
-async function downloadClip(url: string, filename: string): Promise<string> {
-  const folder = path.join(process.cwd(), 'clips');
+async function getDuration(filePath : string) {
+  const dir = path.dirname(filePath);
+  const base = path.basename(filePath, path.extname(filePath));
+  const normalizedPath = path.join(dir, `${base}_normalized.webm`);
   try {
-    await fs.access(folder);
-  } catch {
-    await fs.mkdir(folder, { recursive: true });
+    await fs.access(filePath);
+    const normalizeCmd = `ffmpeg -y -i "${filePath}" -c copy "${normalizedPath}"`;
+    await execAsync(normalizeCmd);
+    const safePath = normalizedPath.replace(/\\/g, '/');
+    const probeCmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${safePath}"`;
+    const { stdout } = await execAsync(probeCmd);
+    const duration = parseFloat(stdout.trim());
+    await fs.unlink(normalizedPath);
+    return isNaN(duration) ? NaN : duration;
+  } catch (err) {
+    console.error("Error getting duration for", filePath, "\n", err);
+    try { await fs.unlink(normalizedPath); } catch {}
+    return NaN;
   }
-
-  const response = await axios.get(url, { responseType: 'arraybuffer' });
-  const outputPath = path.join(folder, filename);
-  await fs.writeFile(outputPath, response.data);
-  return outputPath;
 }
 
-async function getClips(roomId: string) {
-    console.log("Fetching clips for roomId:", roomId);
-    const result = await cloudinary.search
-        .expression(`folder:recordings AND context.roomId=${roomId}`)
-        .sort_by('created_at', 'desc')
-        .with_field("context")
-        .max_results(500)
-        .execute();
-    const parsedResults=result.resources.map((clip : Clip)=>{
-        const context=clip.context || {};
-        return {
-            url: clip.secure_url,
-            timeStamp: context.timeStamp || '',
-            callName: context.callName || '',
-            roomId: context.roomId || '',
-            userId: context.userId || '',
-            type: context.type || '',
-            mediaType: context.mediaType || '',
-            createdAt: clip.created_at,
-            public_id: clip.public_id,
-            duration: clip.duration
-        }
-    })
-    console.log("Parsed Results:", parsedResults);
-    const userStreams: Record<string, { type: string; clips: any[] }[]> = {};
+const clipUsed : Record<string,boolean>={}
+const roomId_socketId : Record<string,string[]>={};
+const socketId_media_clips : Record<string,Clip[]>={}; 
+const socketId_screen_clips : Record<string,Clip[]>={};
 
-    for (const clip of parsedResults) {
-        const key = `${clip.userId}-${clip.type}`;
-        if (!userStreams[key]) {
-            userStreams[key] = [];
-        }
-
-        const start = Date.parse(clip.timeStamp);
-        const end = start + clip.duration * 1000;
-
-        const streams = userStreams[key];
-        const last = streams[streams.length - 1];
-
-        if (last && Date.parse(last.clips[last.clips.length - 1].timeStamp) + last.clips[last.clips.length - 1].duration * 1000 >= start) {
-            last.clips.push(clip);
-        } else {
-            streams.push({ type: clip.type, clips: [clip] });
-        }
-    }
-
-    for (const key in userStreams) {
-        if(!userStreams[key] || userStreams[key].length === 0) continue;
-        for (const stream of userStreams[key]) {
-            for (const clip of stream.clips) {
-                const safeFilename = `${clip.userId}-${Date.parse(clip.timeStamp)}.webm`;
-                clip.localPath = await downloadClip(clip.url, safeFilename);
-                const { hasAudio, hasVideo } = getMediaStreamInfo(clip.localPath);
-                clip.hasAudio = hasAudio;
-                clip.hasVideo = hasVideo;
+async function collectCLips(roomId : string){
+    const uploadsPath = path.join(process.cwd(), 'uploads');
+    const dir = path.join(uploadsPath, roomId);
+    const files = await fs.readdir(dir);
+    console.log('ask for clips : ');
+    const webmFiles = files
+        .filter(f => f.startsWith(roomId) && f.endsWith('.webm'))
+        .filter(f => !clipUsed[f]);
+    if(webmFiles.length==0) return false; 
+    for (const file of webmFiles) {
+        clipUsed[file] = true;
+        const filePath = path.join(dir, file);
+        const duration = await getDuration(filePath);
+        console.log(duration);
+        const [roomId, socketId, type, timestampWithExt] = file.split('_');
+        const timestamp = timestampWithExt ? timestampWithExt.replace('.webm', '') : '';
+        console.log(timestamp);
+        if(roomId && !roomId_socketId[roomId]) roomId_socketId[roomId]=[]
+        if(roomId && socketId && !roomId_socketId[roomId]?.includes(socketId)) roomId_socketId[roomId]?.push(socketId);
+        const startTime = Number(timestamp) - duration * 1000;
+        const clip = {
+            file,
+            filePath,
+            startTime,
+            endTime: Number(timestamp),
+            duration
+        };
+        if (roomId && socketId) {
+            if(type == 'screen'){
+              if(!socketId_screen_clips[socketId]) socketId_screen_clips[socketId]=[]
+              const alreadyExists = socketId_screen_clips[socketId].some(c => c.file === file);
+              if(!alreadyExists && !Number.isNaN(clip.duration)) socketId_screen_clips[socketId].push(clip);
+            }
+            if(type == 'media'){
+              if(!socketId_media_clips[socketId]) socketId_media_clips[socketId]=[]
+              const alreadyExists = socketId_media_clips[socketId].some(c => c.file === file);
+              if(!alreadyExists && !Number.isNaN(clip.duration)) socketId_media_clips[socketId].push(clip);
             }
         }
     }
-    console.log("User Streams:", userStreams);
-    
-    for(const key in userStreams){
-        if(!userStreams[key] || userStreams[key].length === 0) continue;
-        for (const stream of userStreams[key]) {
-            stream.clips.sort((a,b)=>{
-                return Date.parse(a.timestamp) - Date.parse(b.timestamp);
-            })
-        }
-    }
-
-    for(const key in userStreams){
-        if(!userStreams[key] || userStreams[key].length === 0) continue;
-        for(const stream of userStreams[key]) await mergeClips(stream.clips,stream.type,roomId,stream.clips[0].userId,stream.clips[0].timeStamp);
-    }
-
-    // use ffmpeg to join all the merged clips to a single final video with roomId and upload it to cloud
-    // retrieve clips from updated-clips folder which includes media/screen-timestamp-final.webm
-    // now sort these retrieved clips by timestamp and use ffmpeg to join them into a single video
-
+    return true;
 }
 
-export async function finalize(roomId : string){
-    setTimeout(()=>{getClips(roomId)},10000);   
+const LAST_CLIP_TIME: Record<string, number> = {};
+const POLL_INTERVAL = 45000;
+const MAX_IDLE_TIME = 2 * POLL_INTERVAL;
+const IS_POLLING: Record<string, boolean> = {};
+
+export async function pollUntilInactive(roomId: string, ask : boolean) {
+    if(ask){
+      const now = Date.now();
+      if (!LAST_CLIP_TIME[roomId]) LAST_CLIP_TIME[roomId] = now;
+      const newClipsFound = await collectCLips(roomId);
+      if (newClipsFound) LAST_CLIP_TIME[roomId] = now;
+      const lastTime = LAST_CLIP_TIME[roomId] ?? now;
+      const timeSinceLast = now - lastTime;
+      if (timeSinceLast >= MAX_IDLE_TIME) {
+          console.log(`Room ${roomId} is inactive. Starting final processing...`);
+          await generateFinalMergedVideo(roomId); // Replace with your final layout logic
+          return;
+      }
+      setTimeout(() => pollUntilInactive(roomId,true), POLL_INTERVAL);
+    }
+    else{
+      console.log(`Room ${roomId} is inactive. Starting final processing... explicitly called `);
+      await collectCLips(roomId);
+      await generateFinalMergedVideo(roomId); 
+    }
 }
 
-// join the merged clips into final video with dynamic layouts as per videos 
-// use queue based approach of merging and joining clips to final video
-// when a user leave a call make sure to call finalize function after clips are uploaded to cloudinary other wise we will miss some
-// also handle the logic that this function should be called only when all the clips are uploaded to cloudinary 
+async function generateFinalMergedVideo(roomId : string){
+  console.log('request to generate timeline : ');
+  const socketIds = roomId_socketId[roomId] ?? [];
 
-// after merging the clips for a peer (as per their socketId). 
-// then try joining the clips in dynamic layout as per the timeStamp using either GStreamer or ffmpeg.
-// if possible delete the files that are not required now.   
+  const scopedMediaClips: Record<string, Clip[]> = {};
+  const scopedScreenClips: Record<string, Clip[]> = {};
+
+  for (const socketId of socketIds) {
+    if (socketId_media_clips[socketId]) {
+      scopedMediaClips[socketId] = [...socketId_media_clips[socketId]].sort(
+        (a, b) => a.startTime - b.startTime
+      );
+    }
+    if (socketId_screen_clips[socketId]) {
+      scopedScreenClips[socketId] = [...socketId_screen_clips[socketId]].sort(
+        (a, b) => a.startTime - b.startTime
+      );
+    }
+  }
+  const timeline = generateTimelineSegments(scopedMediaClips, scopedScreenClips);
+  console.log(timeline);
+  for(let i=0;i<timeline.length;i++){
+    const segment=timeline[i];
+    if(segment){
+      console.log('generating layout for segement with index : ',i);
+      await layoutGeneration(segment,roomId,i);
+    }
+  }
+}
+
+// now i have clips with their startTime,endTime and duration 
+// next step is to sort them based on their timestamp
