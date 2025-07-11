@@ -937,7 +937,7 @@ export default function Calling(){
         if(!socket || !socket.id) return;
         const formData = new FormData();
         console.log(blob);
-        formData.append('file', blob, `${roomId}_${socket.id}_${type}_${timeStamp}.webm`);
+        formData.append('file', blob, `${roomId}@${socket.id}@${type}@${timeStamp}.webm`);
         try{
             console.log('sending clip to server')
             const res = await fetch(`${SERVER_URL}/upload`, {

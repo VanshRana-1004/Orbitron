@@ -231,7 +231,7 @@ io.on('connect', async (socket: Socket) => {
       }
       if (rooms[roomId].peers.length === 0) {
         console.log('length of peer 0')
-        if (rooms[roomId]){ // add is rooms[roomId].isRecording 
+        if (rooms[roomId]){// && rooms[roomId].isRecording 
           rooms[roomId].isRecording = false;
           console.log('calling to merge layouts');
           setTimeout(()=>{pollUntilInactive(roomId,false)},5000);
@@ -489,7 +489,7 @@ app.post('/upload', upload.single('file'), async (req: Request, res: Response): 
       res.status(400).json({ error: 'No file received' });
       return;
     }
-    const [roomId] = file.originalname.split('_');
+    const [roomId] = file.originalname.split('@');
     const saveDir = path.join(uploadsPath, roomId || 'default');
     await fs.promises.mkdir(saveDir, { recursive: true }); 
     const savePath = path.join(saveDir, file.originalname);
@@ -504,3 +504,4 @@ app.post('/upload', upload.single('file'), async (req: Request, res: Response): 
 server.listen(PORT, () => {
   console.log('server is listening on the PORT : 8080');
 });
+// issues in recording 

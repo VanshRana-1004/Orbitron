@@ -1,12 +1,11 @@
-import { Clip } from "./finalize";
+import { ConcatenatedClip} from "./finalize";
 
 export interface TrimmedClip {
-  socketId: string;
-  type: 'media' | 'screen';
+  type : string;
   file: string;
   filePath: string;
-  offset: number;           
-  duration: number;         
+  offset: number;
+  duration: number;
   originalStart: number;
   originalEnd: number;
 }
@@ -17,33 +16,15 @@ export interface TimelineSegment {
   duration: number;
   activeCount: number;
   clips: TrimmedClip[];
-}
+} 
 
-export function generateTimelineSegments(mediaClips: Record<string, Clip[]>,screenClips: Record<string, Clip[]>): TimelineSegment[] {
-  const allClips: { clip: Clip; socketId: string; type: 'media' | 'screen' }[] = [];
-
-  for (const socketId in mediaClips) {
-    const clips = mediaClips[socketId];
-    if (clips) {
-      for (const clip of clips) {
-        allClips.push({ clip, socketId, type: 'media' });
-      }
-    }
-  }
-  for (const socketId in screenClips) {
-    const clips = screenClips[socketId];
-    if (clips) {
-      for (const clip of clips) {
-        allClips.push({ clip, socketId, type: 'screen' });
-      }
-    }
-  }
+export function generateTimelineSegments(clips: ConcatenatedClip[]): TimelineSegment[] {
 
   const timePoints = new Set<number>();
-  allClips.forEach(({ clip }) => {
-    timePoints.add(clip.startTime);
-    timePoints.add(clip.endTime);
-  });
+  for (const clip of clips) {
+    timePoints.add(clip.start);
+    timePoints.add(clip.start + clip.duration);
+  }
 
   const sortedTimePoints = Array.from(timePoints).sort((a, b) => a - b);
   const timeline: TimelineSegment[] = [];
@@ -51,38 +32,41 @@ export function generateTimelineSegments(mediaClips: Record<string, Clip[]>,scre
   for (let i = 0; i < sortedTimePoints.length - 1; i++) {
     const startTime = sortedTimePoints[i];
     const endTime = sortedTimePoints[i + 1];
-    if(endTime && startTime){
-        const segmentDuration = endTime - startTime;
-        const activeClips: TrimmedClip[] = [];
+    if(!startTime || !endTime) continue;
+    const segmentDuration = endTime - startTime;
 
-        for (const { clip, socketId, type } of allClips) {
-            const overlaps = clip.startTime < endTime && clip.endTime > startTime;
-            if (overlaps) {
-                const offset = Math.max(startTime - clip.startTime, 0);
-                const duration = Math.min(clip.endTime, endTime) - Math.max(clip.startTime, startTime);
-                activeClips.push({
-                    socketId,
-                    type,
-                    file: clip.file,
-                    filePath: clip.filePath,
-                    offset,
-                    duration,
-                    originalStart: clip.startTime,
-                    originalEnd: clip.endTime
-                });
-            }
-        }
+    const activeClips: TrimmedClip[] = [];
 
-        if (activeClips.length > 0) {
-            timeline.push({
-                startTime,
-                endTime,
-                duration: segmentDuration,
-                activeCount: activeClips.length,
-                clips: activeClips
-            });
-        }
-    }    
+    for (const clip of clips) {
+      const clipStart = clip.start;
+      const clipEnd = clip.start + clip.duration;
+
+      const overlaps = clipStart < endTime && clipEnd > startTime;
+      if (overlaps) {
+        const offset = Math.max(startTime - clipStart, 0);
+        const duration = Math.min(clipEnd, endTime) - Math.max(clipStart, startTime);
+        activeClips.push({
+          type : clip.type, 
+          file: clip.path,
+          filePath: clip.path,
+          offset,
+          duration,
+          originalStart: clipStart,
+          originalEnd: clipEnd,
+        });
+      }
+    }
+
+    if (activeClips.length > 0) {
+      timeline.push({
+        startTime,
+        endTime,
+        duration: segmentDuration,
+        activeCount: activeClips.length,
+        clips: activeClips,
+      });
+    }
   }
+
   return timeline;
 }
