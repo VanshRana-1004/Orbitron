@@ -76,6 +76,8 @@ export default function Calling(){
 
     const [token,setToken]=useState<string | null>(null);
     const [authorized,setAuthorized]=useState<boolean>(false);
+    const [count,setCount]=useState<number>(5);
+    const [showCount,setShowCount]=useState<boolean>(false);
 
     useEffect(()=>{
         const storedToken = localStorage.getItem('token');
@@ -217,7 +219,11 @@ export default function Calling(){
 
         newSocket.on('start-recording',()=>{
             alert('Recording started successfully');
+            setShowCount(true);
+            setCount(5);
+            setInterval(()=>setCount(count=>count-1),1000);
             setTimeout(()=>{
+                setShowCount(false);
                 setIsRecording(true);
                 startRecording();
             },5000);
@@ -791,13 +797,19 @@ export default function Calling(){
                 console.log(response);
                 if(response){
                     alert('resources are ready recording will start in few seconds.')
-                    setIsRecording(true);
-                    startRecording();
-                    if(shareScreenRef.current) startSharedScreenRecording();
+                    setShowCount(true);
+                    setCount(5);
+                    setInterval(()=>setCount(count=>count-1),1000);
+                    setTimeout(()=>{
+                        setShowCount(false);
+                        setIsRecording(true);
+                        startRecording();
+                        if(shareScreenRef.current) startSharedScreenRecording()
+                    },5000);
                 }
                 else{
                     alert('resources are not ready, please try again!');
-                    return
+                    return;
                 }
             });
         }catch(e){
@@ -1009,6 +1021,7 @@ export default function Calling(){
             <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={handleScreenShare}>{!shareScreen ? 'share screen' : 'stop screen sharing'}</div>
             {admin && !isRecording && <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={requestStartRecording}>record</div>}
             {admin && isRecording && <div className='bg-white/10 px-2 py-1 border cursor-pointer rounded' onClick={requestStopRecording}>stop recording</div>}
+            {showCount && <div className='px-2 py-1 font-bold'>{count}</div>}
             {isRecording && <div className='px-2 py-1'>Recording</div>}
             <div className='bg-red-500 px-2 py-1 border cursor-pointer rounded' onClick={leaveRoom}>Leave</div>
         </div>

@@ -1,10 +1,11 @@
 import path from 'path';
-import fs from 'fs/promises';
+import fs from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { generateTimelineSegments } from './timeline';
 import { layoutGeneration } from './layout';
 import { concatenateClips } from './concatenate-clips';
+import { uploadClips } from './upload-clips';
 
 const execAsync = promisify(exec);
 
@@ -22,34 +23,56 @@ export interface ConcatenatedClip{
   duration : number,
   type : string
 }
-const normalizedDir = path.join(process.cwd(), 'normalized');
+
+const rootDir = path.join(process.cwd());
 
 const clipUsed : Record<string,boolean>={}
 const roomId_socketId : Record<string,string[]>={};
 const socketId_media_clips : Record<string,Clip[]>={}; 
 const socketId_screen_clips : Record<string,Clip[]>={};
 const roomId_clips : Record<string,ConcatenatedClip[]>={}
-
+const finalCall : Record<string,boolean>={};
 const LAST_CLIP_TIME: Record<string, number> = {};
 const POLL_INTERVAL = 45000;
 const MAX_IDLE_TIME = 2 * POLL_INTERVAL;
 
+
 async function ensureUploadsDir() {
+  const normalizedDir = path.join(rootDir, 'normalized');
   try {
-    await fs.access(normalizedDir);
+    await fs.promises.access(normalizedDir);
   } catch {
-    await fs.mkdir(normalizedDir);
+    await fs.promises.mkdir(normalizedDir);
     console.log('Created "uploads" directory');
   }
 }
 ensureUploadsDir();
 
+async function deleteHelpingClips(roomId : string){
+  console.log(`deleting uploads/${roomId}, normalized/${roomId} && concatenated-clips/${roomId}`);
+  const uploadsPath = path.join(rootDir, 'uploads', roomId);
+  const normalizedPath = path.join(rootDir, 'normalized', roomId);
+  const concatenatedPath = path.join(rootDir, 'concatenated-clips', roomId);
+  console.log(`deleting ${uploadsPath}, ${normalizedPath} && ${concatenatedPath}`);
+  try{
+    await Promise.all([
+      fs.promises.rm(uploadsPath, { recursive: true, force: true }),
+      fs.promises.rm(normalizedPath, { recursive: true, force: true }),
+      fs.promises.rm(concatenatedPath, { recursive: true, force: true }),
+    ]);
+    console.log("Temporary folders deleted successfully.");
+  }catch(e){
+    console.log('unable to delete Helping folders.');
+  }
+}
+
 async function ensureRoomDir(roomId: string): Promise<string> {
+  const normalizedDir = path.join(rootDir, 'normalized');
   const roomDir = path.join(normalizedDir, roomId);
   try {
-    await fs.access(roomDir);
+    await fs.promises.access(roomDir);
   } catch {
-    await fs.mkdir(roomDir, { recursive: true });
+    await fs.promises.mkdir(roomDir, { recursive: true });
     console.log(`Created normalized folder for room: ${roomId}`);
   }
   return roomDir;
@@ -88,7 +111,7 @@ async function getDuration(filePath : string,roomId : string) {
   const normalizedFile = `${base}_normalized.webm`;
   const normalizedPath = path.join(roomDir, normalizedFile);
   try {
-    await fs.access(filePath);
+    await fs.promises.access(filePath);
     const inputHasVideo = await hasVideo(filePath);
     const inputHasAudio = await hasAudio(filePath);
     const originalDuration = await getDurationFromFile(filePath);
@@ -111,7 +134,7 @@ async function getDuration(filePath : string,roomId : string) {
     };
   } catch (err) {
     console.error("Error normalizing or getting duration:", filePath, "\n", err);
-    try { await fs.unlink(normalizedPath); } catch {}
+    try { await fs.promises.unlink(normalizedPath); } catch {}
     return null;
   }
 }
@@ -119,7 +142,7 @@ async function getDuration(filePath : string,roomId : string) {
 async function collectCLips(RoomID : string){
     const uploadsPath = path.join(process.cwd(), 'uploads');
     const dir = path.join(uploadsPath, RoomID);
-    const files = await fs.readdir(dir);
+    const files = await fs.promises.readdir(dir);
     console.log('ask for clips : ');
     const webmFiles = files
         .filter(f => f.startsWith(RoomID) && f.endsWith('.webm'))
@@ -171,6 +194,8 @@ export async function pollUntilInactive(roomId: string, ask : boolean) {
       const lastTime = LAST_CLIP_TIME[roomId] ?? now;
       const timeSinceLast = now - lastTime;
       if (timeSinceLast >= MAX_IDLE_TIME) {
+          if(finalCall[roomId]==true) return;
+          finalCall[roomId]=true;
           console.log(`Room ${roomId} is inactive. Starting final processing...`);
           await generateFinalMergedVideo(roomId);
           return;
@@ -178,6 +203,8 @@ export async function pollUntilInactive(roomId: string, ask : boolean) {
       setTimeout(() => pollUntilInactive(roomId,true), POLL_INTERVAL);
     }
     else{
+      if(finalCall[roomId]==true) return;
+      finalCall[roomId]=true;
       console.log(`Room ${roomId} is inactive. Starting final processing... explicitly called `);
       await collectCLips(roomId);
       await generateFinalMergedVideo(roomId); 
@@ -241,6 +268,9 @@ async function generateFinalMergedVideo(roomId : string){
   if(roomId_clips[roomId]){
     const timeline = generateTimelineSegments(roomId_clips[roomId]);
     console.log(timeline);
+    timeline.forEach((group)=>{
+      console.log(group);
+    })
     for(let i=0;i<timeline.length;i++){
       const segment=timeline[i];
       if(segment){
@@ -249,8 +279,11 @@ async function generateFinalMergedVideo(roomId : string){
       }
     }
   }
-  
-}
 
-// next step is to upload final clips to cloudinary and delete the temp clips used to create final clips i.e.
-// from uploads and concatenated-clips folders delete roomId folder 
+  // send the clips to the cloudinary
+  await uploadClips(roomId);
+  // add logic to delete normalized/roomID, uploads/roomId and concatenated-clips/roomId 
+
+  // await deleteHelpingClips(roomId);
+
+}

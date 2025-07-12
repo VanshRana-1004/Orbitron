@@ -26,7 +26,7 @@ export async function layoutGeneration(segment : TimelineSegment,roomId : string
     const mediaClips=clips.filter((clip)=>clip.type!=='screen');
     const duration=segment.duration;
     const mediaOffsets : number[]=[];
-    mediaClips.forEach((clip)=>mediaOffsets.push(clip.offset/1000));
+    mediaClips.forEach((clip)=>mediaOffsets.push(clip.offset));
     let screenOffset : number | undefined=screenClips[0]?.offset;
     const count=segment.activeCount;
     console.log(duration);
