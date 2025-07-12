@@ -280,10 +280,10 @@ async function generateFinalMergedVideo(roomId : string){
     }
   }
 
-  // send the clips to the cloudinary
+  // clips to cloudinary
   await uploadClips(roomId);
-  // add logic to delete normalized/roomID, uploads/roomId and concatenated-clips/roomId 
 
+  // delte temp files
   // await deleteHelpingClips(roomId);
 
 }

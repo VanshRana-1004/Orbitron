@@ -28,7 +28,7 @@ export async function uploadClips(roomId : string){
 
     for (const clipPath of matchedClips) {
       console.log(`Uploading: ${clipPath}`);
-      // You can call your Cloudinary uploader here
+        
     }
 
   } catch (err) {
