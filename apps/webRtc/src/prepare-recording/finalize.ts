@@ -139,6 +139,16 @@ async function getDuration(filePath : string,roomId : string) {
   }
 }
 
+function isDuplicateClip(existing: Clip[], newClip: Clip): boolean {
+  return existing.some(
+    (clip) =>
+      clip.file === newClip.file &&
+      clip.filePath === newClip.filePath &&
+      clip.duration === newClip.duration &&
+      clip.startTime === newClip.startTime
+  );
+}
+
 async function collectCLips(RoomID : string){
     const uploadsPath = path.join(process.cwd(), 'uploads');
     const dir = path.join(uploadsPath, RoomID);
@@ -173,12 +183,20 @@ async function collectCLips(RoomID : string){
             if(type == 'screen'){
               if(!socketId_screen_clips[socketId]) socketId_screen_clips[socketId]=[]
               const alreadyExists = socketId_screen_clips[socketId].some(c => c.file === file);
-              if(!alreadyExists && !Number.isNaN(clip.duration)) socketId_screen_clips[socketId].push(clip);
+              if(!alreadyExists && !Number.isNaN(clip.duration)){
+                if (!isDuplicateClip(socketId_screen_clips[socketId], clip)) {
+                  socketId_screen_clips[socketId].push(clip);
+                }
+              } 
             }
             if(type == 'media'){
               if(!socketId_media_clips[socketId]) socketId_media_clips[socketId]=[]
               const alreadyExists = socketId_media_clips[socketId].some(c => c.file === file);
-              if(!alreadyExists && !Number.isNaN(clip.duration)) socketId_media_clips[socketId].push(clip);
+              if(!alreadyExists && !Number.isNaN(clip.duration)){
+                if (!isDuplicateClip(socketId_media_clips[socketId], clip)) {
+                  socketId_media_clips[socketId].push(clip);
+                }
+              } 
             }
         }
     }
@@ -203,10 +221,10 @@ export async function pollUntilInactive(roomId: string, ask : boolean) {
       setTimeout(() => pollUntilInactive(roomId,true), POLL_INTERVAL);
     }
     else{
-      if(finalCall[roomId]==true) return;
-      finalCall[roomId]=true;
       console.log(`Room ${roomId} is inactive. Starting final processing... explicitly called `);
       await collectCLips(roomId);
+      if(finalCall[roomId]==true) return;
+      finalCall[roomId]=true;
       await generateFinalMergedVideo(roomId); 
     }
 }
@@ -230,6 +248,8 @@ async function generateFinalMergedVideo(roomId : string){
       );
     }
   }
+  console.log(scopedMediaClips);
+  console.log(scopedScreenClips)
 
   for (const socketId of socketIds) {
     if (scopedMediaClips[socketId]) {
@@ -284,6 +304,6 @@ async function generateFinalMergedVideo(roomId : string){
   await uploadClips(roomId);
 
   // delte temp files
-  // await deleteHelpingClips(roomId);
+  await deleteHelpingClips(roomId);
 
 }

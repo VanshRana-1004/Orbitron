@@ -109,6 +109,29 @@ io.on('connect', async (socket: Socket) => {
 
   const worker = await workerPromise;
 
+  const processingQueue: (() => Promise<void>)[] = [];
+
+  let isProcessing = false;
+
+  async function queuePoll(roomId: string) {
+    processingQueue.push(() => pollUntilInactive(roomId, false));
+
+    if (!isProcessing) {
+      isProcessing = true;
+      while (processingQueue.length > 0) {
+        const task = processingQueue.shift();
+        if (task) {
+          try {
+            await task();
+          } catch (err) {
+            console.error("Error in queued task:", err);
+          }
+        }
+      }
+      isProcessing = false;
+    }
+  }
+
   async function createRoom(roomId: string, socketId: string) {
     let room = rooms[roomId];
     if (room) {
@@ -234,7 +257,7 @@ io.on('connect', async (socket: Socket) => {
         if (rooms[roomId]){// && rooms[roomId].isRecording 
           rooms[roomId].isRecording = false;
           console.log('calling to merge layouts');
-          setTimeout(()=>{pollUntilInactive(roomId,false)},5000);
+          setTimeout(()=>{queuePoll(roomId)},5000);
         } 
         delete rooms[roomId];
       }
@@ -504,4 +527,3 @@ app.post('/upload', upload.single('file'), async (req: Request, res: Response): 
 server.listen(PORT, () => {
   console.log('server is listening on the PORT : 8080');
 });
-// issues in recording 
