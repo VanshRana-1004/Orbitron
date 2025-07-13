@@ -483,7 +483,7 @@ io.on('connect', async (socket: Socket) => {
     socket.to(roomId).emit('start-recording');
     if (rooms[roomId] && !rooms[roomId].isRecording){
       rooms[roomId].isRecording = true;
-      setTimeout(()=>{pollUntilInactive(roomId,true)},45000);
+      setTimeout(()=>{queuePoll(roomId)},45000);
     } 
     callback(true);      
   })
@@ -493,7 +493,7 @@ io.on('connect', async (socket: Socket) => {
     socket.to(roomId).emit('stop-recording');
     if (rooms[roomId] && rooms[roomId].isRecording){
       rooms[roomId].isRecording = false;
-      setTimeout(()=>{pollUntilInactive(roomId,false)},5000);
+      setTimeout(()=>{queuePoll(roomId)},5000);
     } 
     callback(true);    
   })

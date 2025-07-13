@@ -36,7 +36,6 @@ const LAST_CLIP_TIME: Record<string, number> = {};
 const POLL_INTERVAL = 45000;
 const MAX_IDLE_TIME = 2 * POLL_INTERVAL;
 
-
 async function ensureUploadsDir() {
   const normalizedDir = path.join(rootDir, 'normalized');
   try {
@@ -149,9 +148,21 @@ function isDuplicateClip(existing: Clip[], newClip: Clip): boolean {
   );
 }
 
+async function isDirectoryAccessible(directoryPath : string) {
+  try {
+    await fs.promises.access(directoryPath, fs.constants.R_OK | fs.constants.W_OK);
+    console.log(`Directory is accessible: ${directoryPath}`);
+    return true;
+  } catch (err) {
+    console.warn(`Cannot access directory: ${directoryPath}`);
+    return false;
+  }
+}
+
 async function collectCLips(RoomID : string){
     const uploadsPath = path.join(process.cwd(), 'uploads');
     const dir = path.join(uploadsPath, RoomID);
+    if(!isDirectoryAccessible(dir)) return;
     const files = await fs.promises.readdir(dir);
     console.log('ask for clips : ');
     const webmFiles = files
