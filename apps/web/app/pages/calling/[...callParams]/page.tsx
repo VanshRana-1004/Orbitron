@@ -78,6 +78,22 @@ export default function Calling(){
     const [authorized,setAuthorized]=useState<boolean>(false);
     const [count,setCount]=useState<number>(5);
     const [showCount,setShowCount]=useState<boolean>(false);
+    const msgRef=useRef<HTMLInputElement>(null);
+
+    interface chat{
+        name : string,
+        time : string,
+        msg : string,
+        me : boolean
+    }
+
+    const [chatArr, setChatArr] = useState<chat[]>([]);
+    const bottomRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [chatArr]);
+
 
     useEffect(()=>{
         const storedToken = localStorage.getItem('token');
@@ -249,6 +265,10 @@ export default function Calling(){
         newSocket.on('chunk_ack',({status})=>{
             if(status) alert('chunk saved successfully')
             else alert('error in saving chunk')    
+        })
+
+        newSocket.on('chat',({name,time,msg})=>{
+            setChatArr(prev=>[...prev,{name,time,msg,me:false}]);
         })
 
     },[authorized])
@@ -1012,6 +1032,28 @@ export default function Calling(){
         router.push('/pages/dashboard')
     }
 
+    function formatTime(timestamp: number | string) {
+        return new Date(timestamp).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+        });
+    }
+
+    async function sendChat(){
+        const socket=sckt.current;
+        if(socket && msgRef.current){
+            const msg : string=msgRef.current.value;
+            const time=formatTime(Date.now());
+            const name=userNameRef.current;
+            msgRef.current.value='';
+            if(msg.length>0){
+                setChatArr(prev=>[...prev,{name,time,msg,me:true}]);
+                await socket.emit('chat', {roomId,name,time,msg});
+            }
+        }
+    }
+
     return <div className="flex h-screen w-screen bg-zinc-900">
         <div className='flex w-full backdrop-blur-xs bg-white/10 fixed top-0 px-20 py-2 gap-5 z-50'>
             <div className='px-2 py-1'>{`call : ${callName}`}</div>
@@ -1025,8 +1067,8 @@ export default function Calling(){
             {isRecording && <div className='px-2 py-1'>Recording</div>}
             <div className='bg-red-500 px-2 py-1 border cursor-pointer rounded' onClick={leaveRoom}>Leave</div>
         </div>
-        <video ref={localVideo} playsInline autoPlay className={`fixed ${peers>0 ? 'top-16 right-5 w-56 h-30 rounded border border-gray-300' : 'top-0 left-1/2 -translate-x-1/2 w-screen h-screen rounded'} `}></video>
-        <div style={{display:peers>0?'block':'none'}} className='w-[80%] overflow-y-scroll py-12'>
+        <video ref={localVideo} playsInline autoPlay className={`fixed ${peers>0 ? 'top-14 right-20 w-56 h-30 rounded border border-gray-300' : 'top-0 left-1/2 -translate-x-1/2 w-screen h-screen rounded'} `}></video>
+        <div style={{display:peers>0?'block':'none'}} className='w-[75%] overflow-y-scroll py-12'>
             <div className="flex flex-col gap-10 p-4 items-center">
                 <div id="screenShared" className='border border-zinc-700 rounded w-[100%] h-[100%] flex justify-center items-center' style={{display:alreadyShared?'block':'none'}}/>
                 <div className={`w-full h-auto grid grid-cols-2 gap-x-5 gap-y-6 justify-items-center px-10 py-6`}>
@@ -1059,5 +1101,31 @@ export default function Calling(){
                 </div >
             </div>
         </div>
+        {peers>0 && <div className='fixed w-[24%] p-2 bottom-1 right-2 border border-gray-700 rounded-lg h-[490px] flex flex-col'>
+            <div className='w-full h-[92%] overflow-y-scroll flex flex-col gap-2 scrollbar-hide'>
+                {chatArr.map((chat, index) => (
+                    <div key={index} className={`flex ${chat.me ? 'justify-end' : 'justify-start'} `}>
+                        <div className={`max-w-[70%] px-4 py-2 rounded-xl shadow-md text-sm
+                            ${chat.me ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-black rounded-bl-none'}`}>
+                            <div className="font-semibold">{chat.name}</div>
+                            <div className="whitespace-pre-wrap break-words">{chat.msg}</div>
+                            <div className="text-xs text-right opacity-70 mt-1">{chat.time}</div>
+                        </div>
+                    </div>
+                ))}
+                <div ref={bottomRef} />
+            </div>
+            <div className='w-full rounded h-[8%] flex justify-between'>
+                <input onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                        e.preventDefault();
+                            sendChat();
+                        }
+                    }}
+                    type="text" ref={msgRef} className='rounded w-[86%] px-2 py-1 text-sm bg-zinc-800 text-white placeholder:text-white' placeholder='type...'/>
+                <div className='bg-white w-[12%] text-zinc-800 text-sm font-semibold flex justify-center items-center rounded cursor-pointer' onClick={sendChat}>send</div>
+            </div>    
+        </div>}
+
     </div>
 }

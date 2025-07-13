@@ -498,6 +498,9 @@ io.on('connect', async (socket: Socket) => {
     callback(true);    
   })
 
+  socket.on('chat',({roomId,name,time,msg} : {roomId : string,name : string,time : string,msg : string})=>{
+    socket.to(roomId).emit('chat', { name, time, msg });
+  })
 });
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------//
