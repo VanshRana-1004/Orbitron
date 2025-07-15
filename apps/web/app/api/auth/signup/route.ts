@@ -2,13 +2,9 @@ import { NextResponse } from 'next/server';
 import { signupType } from '../../../zodtypes';
 import nodemailer from 'nodemailer';
 import { prismaClient } from '@repo/database/client';
-
-function generateOTP() {
-  const digits = "0123456789";
-  let otp = "";
-  for (let i = 0; i < 6; i++) otp += digits[Math.floor(Math.random() * 10)];
-  return otp;
-}
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+const jwt_secret=process.env.JWT_SECRET as string;
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -21,6 +17,7 @@ const transporter = nodemailer.createTransport({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    console.log(body);
     const parsedBody = signupType.safeParse(body);
     if (!parsedBody.success) {
       const errors: { path: string | number; message: string }[] = [];
@@ -45,42 +42,27 @@ export async function POST(req: Request) {
     } 
 
     try {
-      const otpCode: string = generateOTP();
-      const existingOtp = await prismaClient.otps.findFirst({
-        where: {
-          email: body.email,
-        },
-      });
-
-      if (existingOtp) {
-        await prismaClient.otps.update({
-          where: {
-            email: body.email,
-          },
-          data: {
-            otp: otpCode,
-          },
-        });
-      } else {
-        await prismaClient.otps.create({
-          data: {
-            email: body.email,
-            otp: otpCode,
-          },
-        });
+      const newPassword=await bcrypt.hash(body.password,10);
+      const response=await prismaClient.user.create({
+        data:{
+          firstName:body.firstName,
+          lastName:body.lastName,
+          email:body.email,
+          password:newPassword
+        }
+      })
+      if(!response){
+          console.log("User not created");
+          return NextResponse.json({message:"User not created"}, {status:400});
       }
-
-      const response = await transporter.sendMail({
-        from: process.env.EMAIL_HOST,
-        to: body.email,
-        subject: `OTP for signing up - ${new Date().toLocaleTimeString()}`,
-        text: `Your OTP for signup is ${otpCode}.`,
-      });
-
-      return NextResponse.json({ message: 'OTP sent' });
+      else{
+          console.log("User created successfully");
+          const token = jwt.sign({ id: response.id, firstName: response.firstName, lastName:response.lastName }, jwt_secret, {expiresIn: '7d'});
+          return NextResponse.json({message:"User created successfully",token:token}, {status:200}); 
+      }
     } catch (error) {
       console.error(error);
-      return NextResponse.json({ message: 'Error sending OTP email' }, { status: 500 });
+      return NextResponse.json({error:"Internal Server Error"}, {status:500});
     }
   } catch (error) {
     console.error(error);

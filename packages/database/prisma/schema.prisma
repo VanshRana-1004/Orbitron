@@ -13,14 +13,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model otps{
-  Id        Int      @id @default(autoincrement())
-  email     String   @unique
-  otp       String
-
-  @@map("otps")
-}
-
 model User {
   id          Int            @id @default(autoincrement())
   firstName   String
