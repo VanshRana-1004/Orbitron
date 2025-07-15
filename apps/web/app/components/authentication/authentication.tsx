@@ -1,6 +1,6 @@
 "use client";
 import axios from "axios";
-import {  useEffect, useRef, useState } from "react";
+import {  useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {signIn} from 'next-auth/react';
 
@@ -115,10 +115,10 @@ export function Authentication(props : params) {
                 callbackUrl: '/pages/dashboard',
                 redirect: false,
             });
-            if (res?.ok && res.url) {
+            if (res?.error) {
+                console.error("Google SignIn failed:", res.error);
+            } else if (res?.url) {
                 window.location.href = res.url;
-            } else {
-                console.error('Google SignIn failed:', res?.error);
             }
         } catch (err) {
             console.error('SignIn Exception:', err);
