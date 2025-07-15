@@ -1,4 +1,4 @@
-import mediasoupClient from 'mediasoup-client';
+import * as mediasoupClient from 'mediasoup-client';
 export async function CreateDevice(rtpCapabilities : any){
     try{
         const device=new mediasoupClient.Device();

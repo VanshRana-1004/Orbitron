@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { signinType } from '../../../zodtypes';
+import { signinType } from '../../../utils/zodtypes';
 import {prismaClient} from "@repo/database/client";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -23,10 +23,16 @@ export async function POST(req: Request) {
     if(!response) {
         return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
-    const isPasswordValid = await bcrypt.compare(parsedBody.data.password, response.password);
-    if (!isPasswordValid) {
-        return NextResponse.json({ message: 'Invalid password' }, { status: 401 });
+    if(response.oauth){
+        return NextResponse.json({ message: 'User logged with google credentials' }, { status: 500 });
     }
+    if(response.password){
+        const isPasswordValid = await bcrypt.compare(parsedBody.data.password, response.password);
+        if (!isPasswordValid) {
+            return NextResponse.json({ message: 'Invalid password' }, { status: 401 });
+        }
+    }
+    
     const token = jwt.sign({ id: response.id, firstName: response.firstName, lastName:response.lastName }, jwt_secret, {expiresIn: '7d'});
     return NextResponse.json({ message: 'Login successful',token:token }, { status: 200 });
 }

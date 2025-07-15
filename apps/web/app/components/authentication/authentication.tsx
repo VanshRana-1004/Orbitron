@@ -2,13 +2,14 @@
 import axios from "axios";
 import {  useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import {signIn} from 'next-auth/react';
 
 interface params{
-    signIn : boolean
+    sign : boolean
 }
 
 export function Authentication(props : params) {    
-    const [signIn,setSignIn]=useState(props.signIn);
+    const [sign,setSign]=useState(props.sign);
 
     const emailRef=useRef<HTMLInputElement>(null);
     const passwordRef=useRef<HTMLInputElement>(null);
@@ -20,7 +21,8 @@ export function Authentication(props : params) {
     const [passwordError,setPasswordError]=useState<string | null>(null);
     const [firstNameError,setFirstNameError]=useState<string | null>(null);
     const [lastNameError,setLastNameError]=useState<string | null>(null);
-
+    const [isRedirecting, setIsRedirecting] = useState(false);
+    
     function handle(e: React.FormEvent<HTMLButtonElement>) {
         setEmailError(null);
         setPasswordError(null);
@@ -34,7 +36,7 @@ export function Authentication(props : params) {
         const lastName=lastNameRef.current?.value;
         const password=passwordRef.current?.value;
         
-        if(signIn){
+        if(sign){
             axios.post('/api/auth/login', {
                 email: email,
                 password: password
@@ -96,16 +98,34 @@ export function Authentication(props : params) {
         }
     }
     function change() {
-        if(signIn){
-            setSignIn(false);
+        if(sign){
+            setSign(false);
             router.push('/pages/signup');
         } 
         else{
-            setSignIn(true);
+            setSign(true);
             router.push('/pages/login');
         } 
     }
 
+    async function handleGoogleLogin(){
+        try {
+            setIsRedirecting(true);
+            const res = await signIn('google', {
+                callbackUrl: '/pages/dashboard',
+                redirect: false,
+            });
+            if (res?.ok && res.url) {
+                window.location.href = res.url;
+            } else {
+                console.error('Google SignIn failed:', res?.error);
+            }
+        } catch (err) {
+            console.error('SignIn Exception:', err);
+        } finally {
+            setIsRedirecting(false);
+        }  
+    }
 
     return <div className="bg-white h-screen flex flex-col justify-center items-center ">
         <div className={`flex flex-col items-center justify-center gap-2 px-10 py-5 bg-gray-100 rounded-lg shadow-lg`}> 
@@ -113,14 +133,14 @@ export function Authentication(props : params) {
                 <h1 className="text-black text-xl font-semibold">Authentication</h1>
                 <button className="text-red-500 text-sm font-semibold" onClick={()=>{router.push('/')}}>close</button>
             </div>
-            <div className="text-gray-800 font-semibold text-center text-sm cursor-pointer hover:text-blue-600" >Continue with Google</div>
+            <div className="text-gray-800 font-semibold text-center text-sm cursor-pointer hover:text-blue-600" onClick={handleGoogleLogin}>{isRedirecting ? "Redirecting..." : "Continue with Google"}</div>
             <div className="gap-1 text-black font-semibold text-center text-xs flex justify-center items-center">
                 <div className="border w-24 border-black"></div>
                 OR
                 <div className="border w-24 border-black"></div>
             </div>
 
-            {signIn ? 
+            {sign ? 
             <form className="flex flex-col gap-2" id="login-form" method="POST" action="/api/auth/login">
                 <input ref={emailRef} className="px-2 p-1" type="email" name="email" placeholder="Email" required />
                 {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
@@ -141,7 +161,7 @@ export function Authentication(props : params) {
                 <button onClick={handle} className="bg-gray-700 rounded px-3 py-1" type="submit">SignUp</button>
             </form>
             }
-            <button className="text-blue-500" onClick={change}>{signIn ? "Switch to Signup" : "Switch to Login"}</button>
+            <button className="text-blue-500" onClick={change}>{sign ? "Switch to Signup" : "Switch to Login"}</button>
         </div>
     </div>
 }

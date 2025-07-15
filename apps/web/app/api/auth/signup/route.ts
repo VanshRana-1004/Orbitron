@@ -1,18 +1,9 @@
 import { NextResponse } from 'next/server';
-import { signupType } from '../../../zodtypes';
-import nodemailer from 'nodemailer';
+import { signupType } from '../../../utils/zodtypes';
 import { prismaClient } from '@repo/database/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 const jwt_secret=process.env.JWT_SECRET as string;
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_HOST,
-    pass: process.env.EMAIL_PASS,
-  },
-});
 
 export async function POST(req: Request) {
   try {
@@ -48,7 +39,8 @@ export async function POST(req: Request) {
           firstName:body.firstName,
           lastName:body.lastName,
           email:body.email,
-          password:newPassword
+          password:newPassword,
+          oauth:false,
         }
       })
       if(!response){

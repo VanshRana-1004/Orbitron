@@ -1,6 +1,7 @@
 "use client"
 import { useState,useRef,useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getSession } from 'next-auth/react';
 import axios from 'axios';
 
 interface Clip {
@@ -25,32 +26,41 @@ export default function Dashboard() {
     const [clips, setClips] = useState<Clip[]>([]);
 
     useEffect(() => {
-        const storedToken = localStorage.getItem('token');
-        setToken(storedToken);
-        console.log('token in useEffect : ', storedToken);
-    }, []);
-
-    useEffect(() => {
-        if (!token) return;
-        async function verifyToken() {
-            try{
-                const response = await axios.post('/api/auth/verify-token',{},{
-                    headers: { Authorization: `Bearer ${token}`}
-                })
-                console.log('Token verified successfully:', response.data);
-                const name=response.data.firstName + ' ' + response.data.lastName;
-                userNameRef.current=name;
-                userIdRef.current=response.data.id;
-                setAuthorized(true);
-            }catch(e){
-                console.log('No token found, redirecting to login');
-                router.push('/pages/login');
-                return;
+        async function checkAuth() {
+            const storedToken = localStorage.getItem('token');
+            if(storedToken){
+                setToken(storedToken);
+                console.log('token in useEffect : ', storedToken);
+                try{
+                    const response = await axios.post('/api/auth/verify-token',{},{
+                        headers: { Authorization: `Bearer ${storedToken}`}
+                    })
+                    console.log('Token verified successfully:', response.data);
+                    const name=response.data.firstName + ' ' + response.data.lastName;
+                    userNameRef.current=name;
+                    userIdRef.current=response.data.id;
+                    setAuthorized(true);
+                }catch(e){
+                    console.log('No token found, redirecting to login');
+                    router.push('/pages/login');
+                    return;
+                }
+            }
+            else{
+                const session = await getSession();
+                console.log("OAuth session:", session);
+                if (session?.user?.email) {
+                    setAuthorized(true);
+                    userNameRef.current = session.user.name ?? "";
+                    userIdRef.current = session.user.email; 
+                } else {
+                    console.log("No OAuth session found");
+                    router.push("/pages/login");
+                }
             }
         }
-        verifyToken();
-        console.log('token in dashboard : ', token);
-    }, [token]);
+        checkAuth();
+    }, []);
 
     async function createNewCall(){
         if(!token){

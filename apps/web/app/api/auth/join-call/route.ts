@@ -45,8 +45,6 @@ export async function POST(req:Request){
         if(response1){
             console.log('joining a room');
             const callSlug=response1.slug;
-            // check whether there already exists an entry in the callUserTime then do nothing
-            // other wise create new entry in callUserTime 
             const response2=await prismaClient.callUserTime.findFirst({
                 where:{
                     userId : userId ,

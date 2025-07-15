@@ -18,13 +18,12 @@ model User {
   firstName   String
   lastName    String
   email       String         @unique
-  password    String
+  password    String?
   joinedAt    DateTime       @default(now())
-  lastLogin   DateTime?
   profileImage String?
+  oauth       Boolean       
   calls       Call[]         @relation("UserToCall")
   callUserTimes CallUserTime[]
-  chatData    ChatData[]
   @@map("user")
 }
 
@@ -34,7 +33,6 @@ model Call {
   callingId     String?
   users         User[]         @relation("UserToCall")
   callUserTimes CallUserTime[]
-  chatData      ChatData[]
   @@map("call")
 }
 
@@ -50,18 +48,4 @@ model CallUserTime {
   @@index([userId])
   @@index([callId])
   @@map("callusertime")
-}
-
-model ChatData {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  callId    Int
-  timeAt    DateTime @default(now())
-  chat      String
-  user      User     @relation(fields: [userId], references: [id])
-  call      Call     @relation(fields: [callId], references: [id])
-
-  @@index([userId])
-  @@index([callId])
-  @@map("chatdata")
 }
