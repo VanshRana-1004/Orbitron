@@ -1,16 +1,15 @@
 "use client";
 import axios from "axios";
-import {  useRef, useState } from "react";
+import {  useRef, useState,useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {signIn} from 'next-auth/react';
+import { signIn } from 'next-auth/react';
+import OpenEye  from "../icons/eye";
+import  CloseEye from "../icons/closeeye";
+import { ThemeToggle } from "../theme-toggle/theme";
 
-interface params{
-    sign : boolean
-}
-
-export function Authentication(props : params) {    
-    const [sign,setSign]=useState(props.sign);
-
+export function Authentication() {    
+    
+    const [sign, setSign] = useState<boolean>(false);
     const emailRef=useRef<HTMLInputElement>(null);
     const passwordRef=useRef<HTMLInputElement>(null);
     const firstNameRef=useRef<HTMLInputElement>(null);
@@ -21,8 +20,27 @@ export function Authentication(props : params) {
     const [passwordError,setPasswordError]=useState<string | null>(null);
     const [firstNameError,setFirstNameError]=useState<string | null>(null);
     const [lastNameError,setLastNameError]=useState<string | null>(null);
+    const [error,setError]=useState<string|null>(null);
+    const [type,setType]=useState<string>("password");
+
+    useEffect(() => {
+        const { pathname, search } = window.location;
+        const segments = pathname.split('/');
+        if(segments.includes('login')) setSign(true);
+        else setSign(false);
+
+        const searchParams = new URLSearchParams(search);
+        const errorParam = searchParams.get('error');
+
+        if (errorParam === 'AccessDenied' || errorParam === 'OAuthAccountNotLinked') {
+            setError('User ID already logged in with password.');
+        } else if (errorParam) {
+            setError(decodeURIComponent(errorParam));
+        }
+    }, []);
+
     const [isRedirecting, setIsRedirecting] = useState(false);
-    
+
     function handle(e: React.FormEvent<HTMLButtonElement>) {
         setEmailError(null);
         setPasswordError(null);
@@ -44,7 +62,7 @@ export function Authentication(props : params) {
             .then((response) => {
                 console.log(response.data);
                 localStorage.setItem('token',response.data.token);
-                router.push('/pages/dashboard');
+                router.push('/dashboard');
             })
             .catch((error) => {
                 if(error.status==400){
@@ -59,7 +77,11 @@ export function Authentication(props : params) {
                     }    
                 }
                 else{
-                    console.log(error);
+                    if(error.status==403) setError('*User already logged in with google*')
+                    if(error.status==404) setError('*User not found*')
+                    if(error.status==401) setError('*Please enter correct password*')
+                    if(error.status==500) setError('*Internal server error, please try again*')
+                    console.log(error.message);
                 }
             })
         }
@@ -72,7 +94,7 @@ export function Authentication(props : params) {
             }).then((response)=>{
                 console.log(response.data);
                 localStorage.setItem('token',response.data.token);
-                router.push('/pages/dashboard');
+                router.push('/dashboard');
             }).catch((error)=>{
                 if(error.status==400){
                     const errors=error.response.data.errors;
@@ -92,76 +114,200 @@ export function Authentication(props : params) {
                     }    
                 }    
                 else{
-                    console.log(error);
+                    if(error.status==401) setError('*Error while signing up, please try again*')
+                    if(error.status==403) setError('*User already logged in with google*')
+                    if(error.status==500) setError('*Internal server error, please try again*')
                 }
             })
         }
     }
-    function change() {
-        if(sign){
-            setSign(false);
-            router.push('/pages/signup');
-        } 
-        else{
-            setSign(true);
-            router.push('/pages/login');
-        } 
-    }
 
-    async function handleGoogleLogin(){
+    const handleGoogleLogin = async () => {
         try {
             setIsRedirecting(true);
-            const res = await signIn('google', {
-                callbackUrl: '/pages/dashboard',
-                redirect: false,
+            await signIn('google', {
+                callbackUrl: '/dashboard', 
             });
-            if (res?.error) {
-                console.error("Google SignIn failed:", res.error);
-            } else if (res?.url) {
-                window.location.href = res.url;
-            }
+
         } catch (err) {
-            console.error('SignIn Exception:', err);
-        } finally {
+            console.error("Unexpected error during sign-in:", err);
+            alert("Something went wrong.");
             setIsRedirecting(false);
-        }  
-    }
+        }
+    };
 
-    return <div className="bg-white h-screen flex flex-col justify-center items-center ">
-        <div className={`flex flex-col items-center justify-center gap-2 px-10 py-5 bg-gray-100 rounded-lg shadow-lg`}> 
-            <div className="flex justify-between w-full mb-2">
-                <h1 className="text-black text-xl font-semibold">Authentication</h1>
-                <button className="text-red-500 text-sm font-semibold" onClick={()=>{router.push('/')}}>close</button>
-            </div>
-            <div className="text-gray-800 font-semibold text-center text-sm cursor-pointer hover:text-blue-600" onClick={handleGoogleLogin}>{isRedirecting ? "Redirecting..." : "Continue with Google"}</div>
-            <div className="gap-1 text-black font-semibold text-center text-xs flex justify-center items-center">
-                <div className="border w-24 border-black"></div>
-                OR
-                <div className="border w-24 border-black"></div>
+    return (
+    <div className="min-h-screen flex items-center justify-center bg-white bg-[radial-gradient(circle_at_center,_#A0FFD6_0%,_#F6FFFB_65%)] px-4 sm:px-6 dark:bg-[#00040B]  dark:bg-[radial-gradient(circle_at_center,_#1E2C40_0%,_#00040B_65%)] relative">
+        
+        <div className="fixed w-full top-5 left-0 flex justify-between px-20 items-center">
+            <a href="/pages/" className=" w-[80px] sm:w-[101px] h-[40px] sm:h-[54px]">
+                <img
+                    src="/logo.png"
+                    alt="My Logo"
+                    className="w-full h-full object-contain dark:hidden"
+                />
+
+                <img
+                    src="/logo-dark.png"
+                    alt="My Dark Logo"
+                    className="w-full h-full object-contain hidden dark:block"
+                />
+            </a>
+
+            <ThemeToggle/>
+
+        </div>
+
+        
+
+        <div className="relative border h-fit border-[hsl(154,90%,73%)] bg-white backdrop-blur-[53.2px] shadow-[inset_0_0_10px_rgba(122,248,193,0.2)] rounded-lg px-5 sm:px-[43px] py-10 w-full max-w-sm flex flex-col items-center
+            dark:bg-[#00040B]/50 dark:border-[#00040B] dark:shadow-[inset_0_0_3px_rgba(109,208,255,0.25)]">
+        
+            <div className="absolute top-2 right-2">
+                <a className="text-[#2dbc7b] hover:text-[#16422E] dark:text-gray-300 dark:hover:text-white" href="/">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                </a>
             </div>
 
-            {sign ? 
-            <form className="flex flex-col gap-2" id="login-form" method="POST" action="/api/auth/login">
-                <input ref={emailRef} className="px-2 p-1" type="email" name="email" placeholder="Email" required />
-                {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
-                <input ref={passwordRef} className="px-2 p-1" type="password" name="password" placeholder="Password" required />
-                {passwordError && <p className="text-red-500 text-xs">{passwordError}</p>}
-                <button onClick={handle} className="bg-gray-700 rounded px-3 py-1" type="submit">Login</button>
-            </form>
-            :
-            <form className="flex flex-col gap-3" id="signup-form" method="POST" action="/api/auth/signup">
-                <input ref={firstNameRef} className="px-2 p-1" type="text" name="First Name" placeholder="First Name" required />
-                {firstNameError && <p className="text-red-500 text-xs">{firstNameError}</p>}
-                <input ref={lastNameRef} className="px-2 p-1" type="text" name="Last Name" placeholder="Last Name" required/>
-                {lastNameError && <p className="text-red-500 text-xs">{lastNameError}</p>}    
-                <input ref={emailRef} className="px-2 p-1" type="email" name="email" placeholder="Email" required />
-                {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
-                <input ref={passwordRef} className="px-2 p-1" type="password" name="password" placeholder="Password" required />
-                {passwordError && <p className="text-red-500 text-xs">{passwordError}</p>}
-                <button onClick={handle} className="bg-gray-700 rounded px-3 py-1" type="submit">SignUp</button>
-            </form>
-            }
-            <button className="text-blue-500" onClick={change}>{sign ? "Switch to Signup" : "Switch to Login"}</button>
+            <div className="text-center">
+                <p className="font-inter font-semibold text-[24px] sm:text-[28px] tracking-[-0.02em] text-[#16422E] mb-0 dark:text-white">
+                    Welcome!
+                </p>
+                <p className="font-inter text-[14px] sm:text-[16px] text-[#16422E] tracking-[-0.02em] dark:text-white">
+                    {sign ? 'Please enter your details to login.' : 'Create your account by filling in the details'}
+                </p>
+            </div>
+
+            <div className="w-full flex flex-col items-center mt-3 gap-1">
+                {!sign && (
+                <div className="w-full">
+                    <label className="block text-[15px] font-inter text-[#16422E] mb-0 dark:text-white">
+                        First name (min 3 characters)
+                    </label>
+                    <input
+                    ref={firstNameRef}
+                    type="text"
+                    placeholder="Enter first name"
+                    className="w-full px-3 py-2 border border-[#7AF8C1] bg-[#CFFEE8] rounded-[5px] text-[14px] text-[#16422E] font-inter placeholder-[#16422E] focus:outline-none focus:ring-2 focus:ring-[#7AF8C1]
+                                dark:bg-[#00040B]/25
+                                dark:text-white
+                                dark:border-[#1E2C40]
+                                dark:placeholder-white
+                                dark:focus:ring-[#2d415e]"
+                    />
+                </div>
+                )}
+
+                {!sign && (
+                <div className="w-full">
+                    <label className="block text-[15px] font-inter text-[#16422E] mb-0 dark:text-white">
+                        Last name (min 3 characters)
+                    </label>
+                    <input
+                    ref={lastNameRef}
+                    type="text"
+                    placeholder="Enter last name"
+                    className="w-full px-3 py-2 border border-[#7AF8C1] bg-[#CFFEE8] rounded-[5px] text-[14px] text-[#16422E] font-inter placeholder-[#16422E] focus:outline-none focus:ring-2 focus:ring-[#7AF8C1]
+                                dark:bg-[#00040B]/25
+                                dark:text-white
+                                dark:border-[#1E2C40]
+                                dark:placeholder-white
+                                dark:focus:ring-[#2d415e]"
+                    />
+                </div>
+                )}
+
+                <div className="w-full">
+                    <label className="block text-[15px] font-inter text-[#16422E] mb-0 dark:text-white">
+                        Email address
+                    </label>
+                    <input
+                        ref={emailRef}
+                        type="email"
+                        placeholder="Enter your email address"
+                        className="w-full px-3 py-2 border border-[#7AF8C1] bg-[#CFFEE8] rounded-[5px] text-[14px] text-[#16422E] font-inter placeholder-[#16422E] focus:outline-none focus:ring-2 focus:ring-[#7AF8C1]
+                                dark:bg-[#00040B]/25
+                                dark:text-white
+                                dark:border-[#1E2C40]
+                                dark:placeholder-white
+                                dark:focus:ring-[#2d415e]"
+                    />
+                </div>
+
+                <div className="w-full">
+                    <label className="block text-[15px] font-inter text-[#16422E] mb-0 dark:text-white">
+                        Password (min 6 chars, a-z, 0-9, special)
+                    </label>
+                    <div className="group flex items-center px-3 border border-[#7AF8C1] bg-[#CFFEE8] rounded-[5px] focus-within:ring-2 focus-within:ring-[#7AF8C1]
+                                dark:bg-[#00040B]/25
+                                dark:text-white
+                                dark:border-[#1E2C40]
+                                dark:placeholder-white
+                                dark:focus-within:ring-[#2d415e]">
+                        <input
+                            ref={passwordRef}
+                            type={type}
+                            placeholder="Enter your password"
+                            className="w-full py-2 text-[14px] text-[#16422E] bg-[#CFFEE8] placeholder-[#16422E] font-inter focus:outline-none
+                                dark:bg-transparent
+                                dark:text-white
+                                dark:border-[#1E2C40]
+                                dark:placeholder-white"
+                        />
+                        {type === 'password' ? (
+                        <CloseEye onClick={() => setType("text")} className="stroke-[#16422E] dark:stroke-white cursor-pointer" color="#FFFFFF" width="24px" height="24px" />
+                        ) : (
+                        <OpenEye onClick={() => setType("password")} className="stroke-[#16422E] dark:stroke-white cursor-pointer" color="#FFFFFF" width="24px" height="24px" />
+                        )}
+                    </div>
+                    {sign && (
+                        <a className="block text-end text-[12px] text-[#16422E] dark:text-white mt-2 hover:underline cursor-pointer font-inter">
+                            Forgot password?
+                        </a>
+                    )}
+                </div>
+            </div>
+
+            {[error, emailError, passwordError, firstNameError, lastNameError].filter(Boolean).map((msg, i) => (
+                <p key={i} className="text-red-600 text-[12px] mt-1 font-inter text-center">{msg}</p>
+            ))}
+
+            <button
+                className="w-full max-w-[316px] mt-6 py-2 bg-[#31C585] dark:bg-[#ffffff] text-white dark:text-[#080f1c] rounded-[5px] font-inter font-semibold text-[15px] tracking-[-0.03em]"
+                onClick={handle}
+            >
+                {sign ? "Log In" : "Sign Up"}
+            </button>
+
+            <div className="flex items-center gap-2 w-full my-2">
+                <div className="flex-grow border border-[#16422E] dark:border-white" />
+                <span className="text-[15px] tracking-[-0.03em] text-[#16422E] dark:text-white font-inter font-medium">or</span>
+                <div className="flex-grow border border-[#16422E] dark:border-white" />
+            </div>
+
+            <button
+                className="w-full max-w-[316px] py-2 bg-[#16422E] dark:bg-[#0076FC] text-white rounded-[5px] font-inter font-semibold text-[15px] tracking-[-0.03em]"
+                onClick={handleGoogleLogin}
+            >
+                Continue with Google
+            </button>
+
+            <p className="text-[14px] sm:text-[16px] text-[#16422E] dark:text-white font-inter mt-6 text-center">
+                {sign ? (
+                <>
+                    Don’t have an account?{" "}
+                    <a href="/signup" className="font-semibold hover:underline">Sign Up</a>
+                </>
+                ) : (
+                <>
+                    Already have an account?{" "}
+                    <a href="/login" className="font-semibold hover:underline">Sign In</a>
+                </>
+                )}
+            </p>
         </div>
     </div>
-}
+    );
+}  

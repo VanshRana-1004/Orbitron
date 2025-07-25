@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         },
       });
       if (existingUser) {
-        return NextResponse.json({ message: 'User already exists' }, { status: 400 });
+        return NextResponse.json({ message: 'User already exists' }, { status: 403 });
       }
     }catch(e){
       console.log(e);
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       })
       if(!response){
           console.log("User not created");
-          return NextResponse.json({message:"User not created"}, {status:400});
+          return NextResponse.json({message:"User not created"}, {status:401});
       }
       else{
           console.log("User created successfully");

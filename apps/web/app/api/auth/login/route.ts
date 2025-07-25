@@ -3,11 +3,13 @@ import { signinType } from '../../../utils/zodtypes';
 import {prismaClient} from "@repo/database/client";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+
 const jwt_secret=process.env.JWT_SECRET as string;
 export async function POST(req: Request) {
     const body = await req.json();
     const parsedBody = signinType.safeParse(body);
     if(!parsedBody.success) {
+        console.log(parsedBody);
         const errors: { path: string | number, message: string }[] = [];
         for(const error of parsedBody.error.errors) {
             errors.push({ path: error.path[0] ?? 'unknown', message: error.message });
@@ -24,7 +26,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
     if(response.oauth){
-        return NextResponse.json({ message: 'User logged with google credentials' }, { status: 500 });
+        return NextResponse.json({ message: 'User logged with google credentials' }, { status: 403 });
     }
     if(response.password){
         const isPasswordValid = await bcrypt.compare(parsedBody.data.password, response.password);

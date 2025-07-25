@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
 const SERVER_URL='http://localhost:8080';
- 
+
 export default function Calling(){
     const router=useRouter();
     const [admin,setAdmin]=useState<boolean>(false);
@@ -116,7 +116,7 @@ export default function Calling(){
                 setAuthorized(true);
             }catch(e){
                 console.log('No token found, redirecting to login');
-                router.push('/pages/login');
+                router.push('/login');
                 return;
             }
         }
@@ -156,7 +156,7 @@ export default function Calling(){
         newSocket.on('limit-ack',(ack : boolean)=>{
             if(!ack){
                 alert(`peers limit hit,you can't join the room`);
-                router.push('/pages/dashboard');
+                router.push('/dashboard');
             }
             else {
                 getLocalStream();
@@ -1029,7 +1029,7 @@ export default function Calling(){
         if (socket && socket.connected) {
             socket.disconnect(); 
         }
-        router.push('/pages/dashboard')
+        router.push('/dashboard')
     }
 
     function formatTime(timestamp: number | string) {

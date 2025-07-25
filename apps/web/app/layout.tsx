@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Providers } from './providers';
 import "./globals.css";
 
 const geistSans = localFont({
@@ -16,15 +17,16 @@ export const metadata: Metadata = {
   description: "P2P Application",
 };
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-black text-white">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

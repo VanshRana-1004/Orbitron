@@ -42,7 +42,7 @@ export default function Dashboard() {
                     setAuthorized(true);
                 }catch(e){
                     console.log('No token found, redirecting to login');
-                    router.push('/pages/login');
+                    router.push('/login');
                     return;
                 }
             }
@@ -55,7 +55,7 @@ export default function Dashboard() {
                     userIdRef.current = session.user.email; 
                 } else {
                     console.log("No OAuth session found");
-                    router.push("/pages/login");
+                    router.push("/login");
                 }
             }
         }

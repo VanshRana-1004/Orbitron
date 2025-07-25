@@ -14,42 +14,51 @@ export const authOptions: NextAuthOptions = {
   ],
   secret: process.env.NEXTAUTH_SECRET,
   callbacks:{
-    async signIn({account,profile}){
-        const email=profile?.email;
+    
+    async signIn({ account, profile }) {
+      const email = profile?.email;
+
+      try {
+        if(!email) return false;
         const existingUser = await prismaClient.user.findUnique({
-            where: { email },
+          where: { email },
         });
+
         if (existingUser && !existingUser.oauth) {
-            console.warn(`OAuth blocked: ${email} already registered with password.`);
-            return false;
+          console.warn(`OAuth blocked: ${email} already registered with password.`);
+          return false; 
         }
-        let firstName='';   
-        let lastName='';
-        if(profile?.name){
-            const parts = profile.name.trim().split(/\s+/); 
-            firstName = parts[0] ?? '';
-            lastName = parts.length > 1 ? parts.slice(1).join(' ') : '';
-        }
-        console.log(profile);
-        console.log(firstName)
-        console.log(lastName);
-        const res=await prismaClient.user.upsert({
-            where:{
-                email : profile?.email
-            },
-            create:{
-                email:profile?.email || '',
-                firstName:firstName,
-                lastName:lastName,
-                oauth:true,
-            },
-            update:{
-                firstName:firstName,
-                lastName:lastName,
-            }
-        })
-        console.log(res);
+
+        const [firstName = '', ...rest] = (profile?.name ?? '').split(/\s+/);
+        const lastName = rest.join(' ');
+
+        await prismaClient.user.upsert({
+          where: { email },
+          create: {
+            email,
+            firstName,
+            lastName,
+            oauth: true,
+          },
+          update: {
+            firstName,
+            lastName,
+          },
+        });
+
         return true;
+
+      } catch (err) {
+        console.error("DB error in signIn callback:", err);
+        return false;
+      }
     }
-  }
+
+  },
+  pages: {
+    error: "/pages/login", 
+  },
+  session: {
+    strategy: "jwt",
+  },
 };
