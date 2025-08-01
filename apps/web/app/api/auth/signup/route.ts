@@ -4,13 +4,14 @@ import { prismaClient } from '@repo/database/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 const jwt_secret=process.env.JWT_SECRET as string;
+import { getAuthCookie } from '../../../lib/set-auth-cookie';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     console.log(body);
     const parsedBody = signupType.safeParse(body);
-    if (!parsedBody.success) {
+    if (!parsedBody.success) { 
       const errors: { path: string | number; message: string }[] = [];
       for (const error of parsedBody.error.errors) {
         errors.push({ path: error.path[0] ?? 'unknown', message: error.message });
@@ -50,7 +51,9 @@ export async function POST(req: Request) {
       else{
           console.log("User created successfully");
           const token = jwt.sign({ id: response.id, firstName: response.firstName, lastName:response.lastName }, jwt_secret, {expiresIn: '7d'});
-          return NextResponse.json({message:"User created successfully",token:token}, {status:200}); 
+          const res = NextResponse.json({ message: 'Login successful' });
+          res.headers.set('Set-Cookie', getAuthCookie(token));
+          return res;
       }
     } catch (error) {
       console.error(error);

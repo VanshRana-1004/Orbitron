@@ -3,6 +3,7 @@ import { signinType } from '../../../utils/zodtypes';
 import {prismaClient} from "@repo/database/client";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { getAuthCookie } from '../../../lib/set-auth-cookie';
 
 const jwt_secret=process.env.JWT_SECRET as string;
 export async function POST(req: Request) {
@@ -36,5 +37,8 @@ export async function POST(req: Request) {
     }
     
     const token = jwt.sign({ id: response.id, firstName: response.firstName, lastName:response.lastName }, jwt_secret, {expiresIn: '7d'});
-    return NextResponse.json({ message: 'Login successful',token:token }, { status: 200 });
+    // return NextResponse.json({ message: 'Login successful',token:token }, { status: 200 });
+    const res = NextResponse.json({ message: 'Login successful' });
+    res.headers.set('Set-Cookie', getAuthCookie(token));
+    return res;
 }

@@ -18,61 +18,10 @@ export default function Dashboard() {
     const router=useRouter();
     const callNameRef=useRef<HTMLInputElement>(null);
     const callIdRef=useRef<HTMLInputElement>(null);
-    const [token, setToken] = useState<string | null>(null);
-    const userNameRef=useRef<string>(null);
-    const userIdRef=useRef<string>(null);
-    const [authorized, setAuthorized] = useState<boolean>(false);
-    const [again,setAgain]=useState<boolean>(false);
-    const [clips, setClips] = useState<Clip[]>([]);
-
-    useEffect(() => {
-        async function checkAuth() {
-            const storedToken = localStorage.getItem('token');
-            if(storedToken){
-                setToken(storedToken);
-                console.log('token in useEffect : ', storedToken);
-                try{
-                    const response = await axios.post('/api/auth/verify-token',{},{
-                        headers: { Authorization: `Bearer ${storedToken}`}
-                    })
-                    console.log('Token verified successfully:', response.data);
-                    const name=response.data.firstName + ' ' + response.data.lastName;
-                    userNameRef.current=name;
-                    userIdRef.current=response.data.id;
-                    setAuthorized(true);
-                }catch(e){
-                    console.log('No token found, redirecting to login');
-                    router.push('/login');
-                    return;
-                }
-            }
-            else{
-                const session = await getSession();
-                console.log("OAuth session:", session);
-                if (session?.user?.email) {
-                    setAuthorized(true);
-                    userNameRef.current = session.user.name ?? "";
-                    userIdRef.current = session.user.email; 
-                } else {
-                    console.log("No OAuth session found");
-                    router.push("/login");
-                }
-            }
-        }
-        checkAuth();
-    }, []);
 
     async function createNewCall(){
-        if(!token){
-            console.log('no token found, please login again');
-            return;
-        }
         await axios.post('/api/auth/create-call', {
             callSlug : callNameRef.current?.value,
-        },{
-            headers:{
-                Authorization: `Bearer ${token}`
-            }
         }).then((response)=>{
             console.log(response.data);
             const callId : string=response.data.callingId;
@@ -86,16 +35,8 @@ export default function Dashboard() {
     }   
     
     async function joinCall() {
-        if(!token){
-            console.log('no token found, please login again');
-            return;
-        }
         await axios.post('/api/auth/join-call', {
             callId : callIdRef.current?.value,
-        },{
-            headers:{
-                Authorization: `Bearer ${token}`
-            }
         }).then((response)=>{
             console.log(response.data);
             const callId : string=response.data.callingId;

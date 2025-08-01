@@ -58,10 +58,9 @@ export function Authentication() {
             axios.post('/api/auth/login', {
                 email: email,
                 password: password
-            })
+            }, { withCredentials: true })
             .then((response) => {
                 console.log(response.data);
-                localStorage.setItem('token',response.data.token);
                 router.push('/dashboard');
             })
             .catch((error) => {
@@ -91,9 +90,8 @@ export function Authentication() {
                 lastName: lastName,
                 email: email,
                 password : password
-            }).then((response)=>{
+            }, { withCredentials: true }).then((response)=>{
                 console.log(response.data);
-                localStorage.setItem('token',response.data.token);
                 router.push('/dashboard');
             }).catch((error)=>{
                 if(error.status==400){
@@ -137,10 +135,14 @@ export function Authentication() {
     };
 
     return (
-    <div className="min-h-screen flex items-center justify-center bg-white bg-[radial-gradient(circle_at_center,_#A0FFD6_0%,_#F6FFFB_65%)] px-4 sm:px-6 dark:bg-[#00040B]  dark:bg-[radial-gradient(circle_at_center,_#1E2C40_0%,_#00040B_65%)] relative">
+    <div className="min-h-screen flex items-center justify-center bg-white bg-[radial-gradient(circle_at_center,_#A0FFD6_0%,_#F6FFFB_65%)] px-4 sm:px-6 dark:bg-[#00040B] dark:bg-[url('/dark-bg.png')] dark:bg-cover dark:bg-center dark:bg-no-repeat relative">
         
-        <div className="fixed w-full top-5 left-0 flex justify-between px-20 items-center">
-            <a href="/pages/" className=" w-[80px] sm:w-[101px] h-[40px] sm:h-[54px]">
+        <div className="top-0 left-0 absolute w-full h-full z-10 pointer-events-none
+            [background-image:linear-gradient(to_right,#CDFCE7_1px,transparent_1px),linear-gradient(to_bottom,#CDFCE7_1px,transparent_1px)]
+            [background-size:60px_60px] dark:hidden"/>
+
+        <div className="fixed w-full top-5 left-0 flex justify-between px-52 z-20 items-center">
+            <a href="/" className=" w-[80px] sm:w-[101px] h-[40px] sm:h-[54px]">
                 <img
                     src="/logo.png"
                     alt="My Logo"
@@ -154,14 +156,12 @@ export function Authentication() {
                 />
             </a>
 
-            <ThemeToggle/>
+            <ThemeToggle text={true}/>
 
         </div>
 
-        
-
-        <div className="relative border h-fit border-[hsl(154,90%,73%)] bg-white backdrop-blur-[53.2px] shadow-[inset_0_0_10px_rgba(122,248,193,0.2)] rounded-lg px-5 sm:px-[43px] py-10 w-full max-w-sm flex flex-col items-center
-            dark:bg-[#00040B]/50 dark:border-[#00040B] dark:shadow-[inset_0_0_3px_rgba(109,208,255,0.25)]">
+        <div className="relative border z-20 h-fit border-[hsl(154,90%,73%)] bg-white backdrop-blur-[53.2px] shadow-[inset_0_0_10px_rgba(122,248,193,0.2)] rounded-lg px-5 sm:px-[43px] py-10 w-full max-w-sm flex flex-col items-center
+        dark:border-white/5 dark:bg-white/5 dark:backdrop-blur-[50px] dark:before:content-[''] dark:before:absolute dark:before:inset-0 dark:before:rounded-xl dark:before:shadow-[inset_0_0_50px_rgba(10,20,36,0.25)] overflow-hidden dark:before:pointer-events-none">
         
             <div className="absolute top-2 right-2">
                 <a className="text-[#2dbc7b] hover:text-[#16422E] dark:text-gray-300 dark:hover:text-white" href="/">
@@ -298,12 +298,12 @@ export function Authentication() {
                 {sign ? (
                 <>
                     Don’t have an account?{" "}
-                    <a href="/signup" className="font-semibold hover:underline">Sign Up</a>
+                    <a href="/signup" className="font-semibold hover:underline dark:text-[#0076FC]">Sign Up</a>
                 </>
                 ) : (
                 <>
                     Already have an account?{" "}
-                    <a href="/login" className="font-semibold hover:underline">Sign In</a>
+                    <a href="/login" className="font-semibold hover:underline dark:text-[#0076FC]">Sign In</a>
                 </>
                 )}
             </p>

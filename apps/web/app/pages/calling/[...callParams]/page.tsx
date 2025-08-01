@@ -74,8 +74,6 @@ export default function Calling(){
     const uploadQueue = useRef<{blob : Blob,type : string,timeStamp: string}[]>([]);
     const isUploading = useRef(false);
 
-    const [token,setToken]=useState<string | null>(null);
-    const [authorized,setAuthorized]=useState<boolean>(false);
     const [count,setCount]=useState<number>(5);
     const [showCount,setShowCount]=useState<boolean>(false);
     const msgRef=useRef<HTMLInputElement>(null);
@@ -94,36 +92,6 @@ export default function Calling(){
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [chatArr]);
 
-
-    useEffect(()=>{
-        const storedToken = localStorage.getItem('token');
-        setToken(storedToken);
-    },[]);
-
-    useEffect(() => {
-        if (!token) return;
-        async function verifyToken() {
-            try{
-                const response = await axios.post('/api/auth/verify-token',{},{
-                    headers: { Authorization: `Bearer ${token}`}
-                })
-                console.log('Token verified successfully:', response.data);
-                const name=response.data.firstName+' '+response.data.lastName;
-                setUserName(name);
-                userNameRef.current=name;
-                setUserId(response.data.id);
-                userIdRef.current=response.data.id;
-                setAuthorized(true);
-            }catch(e){
-                console.log('No token found, redirecting to login');
-                router.push('/login');
-                return;
-            }
-        }
-        verifyToken();
-        console.log('token in dashboard : ', token);
-    }, [token]);
-
     useEffect(()=>{
         window.addEventListener("resize",()=>{setWidth(window.innerWidth);})
         return ()=>{
@@ -132,7 +100,6 @@ export default function Calling(){
     },[])
 
     useEffect(()=>{
-        if(!authorized) return;
         
         const url=window.location.pathname;
         const segments = url.split('/'); 
@@ -271,7 +238,7 @@ export default function Calling(){
             setChatArr(prev=>[...prev,{name,time,msg,me:false}]);
         })
 
-    },[authorized])
+    },[])
 
     async function getLocalStream(){
         
