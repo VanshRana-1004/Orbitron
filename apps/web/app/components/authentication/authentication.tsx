@@ -6,6 +6,7 @@ import { signIn } from 'next-auth/react';
 import OpenEye  from "../icons/eye";
 import  CloseEye from "../icons/closeeye";
 import { ThemeToggle } from "../theme-toggle/theme";
+import {redirect} from "next/navigation";
 
 export function Authentication() {    
     

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -16,7 +15,6 @@ export async function middleware(req: NextRequest) {
 
   if (cookieToken) {
     try {
-      jwt.verify(cookieToken, JWT_SECRET);
       return NextResponse.next();
     } catch (e) {
       console.error("Invalid custom JWT:", e);

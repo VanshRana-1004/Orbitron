@@ -37,7 +37,6 @@ export async function POST(req: Request) {
     }
     
     const token = jwt.sign({ id: response.id, firstName: response.firstName, lastName:response.lastName }, jwt_secret, {expiresIn: '7d'});
-    // return NextResponse.json({ message: 'Login successful',token:token }, { status: 200 });
     const res = NextResponse.json({ message: 'Login successful' });
     res.headers.set('Set-Cookie', getAuthCookie(token));
     return res;

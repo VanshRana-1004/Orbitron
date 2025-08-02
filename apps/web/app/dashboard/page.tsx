@@ -1,7 +1,7 @@
 "use client"
 import { useState,useRef,useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSession } from 'next-auth/react';
+import { redirect } from 'next/navigation';
 import axios from 'axios';
 
 interface Clip {
@@ -14,10 +14,22 @@ interface Clip {
   public_id: string;
 }
 
-export default function Dashboard() {
+export default  function Dashboard() {
     const router=useRouter();
     const callNameRef=useRef<HTMLInputElement>(null);
     const callIdRef=useRef<HTMLInputElement>(null);
+
+    useEffect(()=>{
+        async function getInfo(){
+            await axios.get('/api/auth/me').then((response)=>{
+                console.log(response.data);
+            }).catch((e)=>{
+                console.error("Error fetching user info:", e);
+                redirect('/login');
+            })
+        } 
+        getInfo();        
+    },[])
 
     async function createNewCall(){
         await axios.post('/api/auth/create-call', {
