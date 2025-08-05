@@ -4,7 +4,7 @@ import { io,Socket } from 'socket.io-client';
 import * as mediasoupClient from 'mediasoup-client';
 import { CreateDevice } from 'app/mediasoup-client/device';
 import { RtpCapabilities } from 'mediasoup-client/types';
-import { useRouter } from 'next/navigation';
+import { useRouter,redirect } from 'next/navigation';
 import axios from 'axios';
 
 const SERVER_URL='http://localhost:8080';
@@ -87,6 +87,18 @@ export default function Calling(){
 
     const [chatArr, setChatArr] = useState<chat[]>([]);
     const bottomRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(()=>{
+        async function getInfo(){
+            await axios.get('/api/auth/me').then((response)=>{
+                console.log(response.data);
+            }).catch((e)=>{
+                console.error("Error fetching user info:", e);
+                redirect('/login');
+            })
+        } 
+        getInfo();        
+    },[])
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

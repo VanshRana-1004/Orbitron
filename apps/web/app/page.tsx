@@ -62,8 +62,7 @@ export default function Home() {
         </div>
 
         <div className="w-1/3 justify-end z-20 self-center items-center flex text-[#16422E] dark:text-white dark:font-normal gap-3 font-inter font-semibold text-[16px] tracking-tight">
-          <ThemeToggle text={false}/>
-          <p></p>
+          <ThemeToggle text={false} bg={false}/>
           <div onClick={()=>router.push('/login')} className="cursor-pointer">Log In</div>
           <div className="h-full py-3 border border-[#16422E] dark:border-[#FFFFFF]"></div>
           <div onClick={()=>router.push('/signup')} className="cursor-pointer">Get Started</div>

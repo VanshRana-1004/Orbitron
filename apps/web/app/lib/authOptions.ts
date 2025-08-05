@@ -5,21 +5,21 @@ import { prismaClient } from '@repo/database/client';
 declare module "next-auth" {
   interface Session {
     user: {
-      id?: string;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-      firstName?: string | null;
-      lastName?: string | null;
+      id: string;
+      name: string | null;
+      email: string | null;
+      image: string | null;
+      firstName: string | null;
+      lastName: string | null;
     };
   }
   interface User {
-    id?: string;
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-    firstName?: string | null;
-    lastName?: string | null;
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+    firstName: string | null;
+    lastName: string | null;
   }
 }
 
@@ -45,6 +45,7 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (dbUser) {
+          token.id = dbUser.id;
           token.firstName = dbUser.firstName;
           token.lastName = dbUser.lastName;
         }
@@ -63,10 +64,11 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
+      console.log(token);
       if (token && session.user) {
-        session.user.id = typeof token.id === "string" ? token.id : undefined;
-        session.user.email = token.email;
-        session.user.name = token.name;
+        session.user.id = token.id ? String(token.id) : "";
+        session.user.email = token.email || "";
+        session.user.name = token.name || "";
         session.user.firstName = typeof token.firstName === "string" ? token.firstName : null;
         session.user.lastName = typeof token.lastName === "string" ? token.lastName : null;
       }

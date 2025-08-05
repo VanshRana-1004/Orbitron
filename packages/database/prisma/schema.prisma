@@ -49,3 +49,35 @@ model CallUserTime {
   @@index([callId])
   @@map("callusertime")
 }
+
+model ScheduledCalls{
+  id        Int      @id @default(autoincrement())  
+  userId    Int
+  slug      String   
+  date      String
+  time      String
+}
+
+model RecordedCalls{
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  slug      String
+  callId    String
+  date      String
+  time      String
+  duration  String
+
+  clips     Clip[]
+}
+
+model Clip {
+  id            Int            @id @default(autoincrement())
+  callId        Int            
+  clipNumber    Int            
+  cloudinaryUrl String         
+  publicId      String         
+  
+  recordedCall  RecordedCalls  @relation(fields: [callId], references: [id])
+
+  @@index([callId, clipNumber]) 
+}

@@ -157,7 +157,7 @@ export function Authentication() {
                 />
             </a>
 
-            <ThemeToggle text={true}/>
+            <ThemeToggle text={true} bg={false}/>
 
         </div>
 
