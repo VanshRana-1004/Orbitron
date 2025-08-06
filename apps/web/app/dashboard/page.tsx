@@ -12,20 +12,16 @@ import CalenderIcon from 'app/components/icons/calender';
 import SettingIcon from 'app/components/icons/setting';
 import LogoutIcon from 'app/components/icons/logout';
 import { signOut } from 'next-auth/react';
-import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import CrossIcon from 'app/components/icons/cross';
 import TimeSelector from 'app/components/time-selector/time';
 import DatePicker from 'app/components/date-selector/date';
 
-interface Clip {
-  url: string;
-  timestamp: string;
-  callName?: string;
-  roomId?: string;
-  userId?: string;
-  createdAt: string;
-  public_id: string;
+interface User{
+    firstName : string,
+    lastName : string,
+    email : string,
+    img : string
 }
 
 function getCurrentTime(): { hours: number; minutes: number; ampm: 'AM' | 'PM' } {
@@ -64,8 +60,12 @@ export default  function Dashboard() {
     const scheduledCallNameRef=useRef<HTMLInputElement>(null);
     const idRef=useRef<string>('');
     const [scheduledCalls, setScheduledCalls] = useState<{slug: string; date: string; time: string }[]>([]);
+    const [previousCalls, setPreviousCalls] = useState<{slug: string; callingId: string; peers: string,users : User[]}[]>([]);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [selectedTime, setSelectedTime] = useState<{ hours: number; minutes: number; ampm: 'AM' | 'PM' }>(getCurrentTime());
+    const [show,setShow]=useState<boolean>(false); 
+    const [auth,setAuth]=useState<boolean>(false);
+    const [callDetail,setCallDetail]=useState<number>(-1);
 
     const handleTimeChange = (time: { hours: number; minutes: number; ampm: 'AM' | 'PM' }) => {
         setSelectedTime(time);
@@ -89,17 +89,10 @@ export default  function Dashboard() {
                 const res1=await axios.get('/api/auth/me');
                 console.log(res1.data);
                 setName(res1.data.user.name);
+                if(name=='') setName(`${res1.data.user.firstName} ${res1.data.user.lastName}`)
                 idRef.current=res1.data.user.id;
                 console.log(res1.data.user.id);
-                if(res1.status==200){
-                    const res2 = await axios.get('/api/auth/get-scheduled-calls',{
-                        params : {userId : Number(res1.data.user.id)} 
-                    });
-                    console.log(res2);
-                }
-                
-                // const res3 = await axios.get('/api/auth/get-calls');
-                // const res4 = await axios.get('/api/auth/get-recorded-calls');
+                setAuth(true);
             }catch(e){
                 console.error("Error fetching user info:", e);
                 redirect('/login');
@@ -107,6 +100,45 @@ export default  function Dashboard() {
         } 
         getInfo();
     },[])
+
+    useEffect(()=>{
+            async function getInfo(){
+                const res1 = await axios.get('/api/auth/get-scheduled-calls',{
+                    params : {userId : Number(idRef.current)} 
+                });
+                console.log(res1);
+                const sorted1 = res1.data.res
+                    .sort((a : {slug: string; date: string; time: string }, b : {slug: string; date: string; time: string }) => {
+                        const dateA = new Date(`${a.date} ${a.time}`);
+                        const dateB = new Date(`${b.date} ${b.time}`);
+                        return dateB.getTime() - dateA.getTime();
+                    })
+                    .map(({ slug, date, time } : {slug: string; date: string; time: string }) => ({ slug, date, time })); 
+
+                setScheduledCalls(sorted1);
+
+                const res2=await axios.get('/api/auth/get-calls',{
+                    params : {userId : Number(idRef.current)} 
+                });
+                console.log(res2);
+                const callData : {slug: string; callingId: string; peers: string,users : User[]}[]=[];
+                for(let i=0;i<res2.data.res.length;i++){
+                    const slug=res2.data.res[i].call.slug;
+                    const callingId=res2.data.res[i].call.callingId;
+                    const peers=res2.data.res[i].call.callUserTimes.length;
+                    const users : User[]=[];
+                    const temp=res2.data.res[i].call.callUserTimes;
+                    temp.map((x : any)=>(
+                        users.push({firstName : x.user.firstName,lastName : x.user.lastName,email : x.user.email,img : x.user.profileImage})
+                    ))
+                    callData.push({slug,callingId,peers,users})
+                }
+                setPreviousCalls(callData);
+            }
+
+            // const res3 = await axios.get('/api/auth/get-recorded-calls');
+            getInfo();
+    },[auth])
 
     async function createNewCall(){
         await axios.post('/api/auth/create-call', {
@@ -164,7 +196,7 @@ export default  function Dashboard() {
                 })
                 console.log('Call successfully scheduled');
                 setShowCalendar(false);
-                setScheduledCalls(prev => [...prev, { slug, date, time }]);
+                setScheduledCalls(prev=>[{slug, date, time},...prev])
             }catch(e){
                 alert('error in scheduling call.')
             }
@@ -255,18 +287,57 @@ export default  function Dashboard() {
             </div>
         }
 
-        {!showCreate && !showJoin && !showCalendar && <div className={`absolute inset-0 w-full h-full z-10 
+        {!showCreate && !showJoin && !showCalendar && callDetail===-1 && <div className={`absolute inset-0 w-full h-full z-10 
             bg-transparent 
             [background-image:linear-gradient(to_right,#CDFCE7_1px,transparent_1px),linear-gradient(to_bottom,#CDFCE7_1px,transparent_1px)]
             [background-size:60px_60px]
             dark:[background-image:linear-gradient(to_right,#0B0F17_1px,transparent_1px),linear-gradient(to_bottom,#0B0F17_1px,transparent_1px)]`
         }/>}
 
-        <div className={`flex px-24 py-4 h-screen w-screen gap-2`}>
-
-            <div className={`flex flex-col w-[15%] px-3 py-1 h-2/3 z-20 bg-white border border-[#7AF8C1] dark:border-[#1E2C40] rounded  dark:bg-[#000000] dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C] ${(showCreate || showJoin || showCalendar) ? 'pointer-events-none' : ''} `}>
+        {callDetail!=-1 && 
+            <div className='flex flex-col p-3 gap-3 fixed top-1/2 -translate-x-1/2 left-1/2 -translate-y-1/2 w-1/3 h-auto z-30 bg-white dark:shadow-none dark:bg-[#02060D] rounded border border-[#7AF8C1] dark:border-[#1E2C40]'>
                 
-                {(showCreate || showJoin || showCalendar) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
+                <div className='flex justify-between items-center w-full'>
+                    <div className='geist-font text-[20px] font-semibold text-[#16422E] dark:text-[#0076FC]'>
+                        Call Detail
+                    </div>
+                    <div onClick={()=>{setCallDetail(-1)}} className='cursor-pointer'><CrossIcon/></div>
+                </div>
+                
+                <div className={`w-full border border-[#16422E] dark:border-[#FFFFFF] `}></div>
+
+                <div className="w-full h-auto flex flex-col gap-4 p-4 rounded-xl bg-green-50 dark:bg-[#02060D] text-[#16422E] dark:text-white border border-[#7AF8C1] dark:border-[#1E2C40]">
+                    <div className="flex gap-1 items-center ">
+                        <p className="geist-font text-[16px] font-normal">Call Name :</p>
+                        <p className="geist-font text-[16px] font-medium">{previousCalls[callDetail]?.slug}</p>
+                    </div>
+
+                    <div className="flex gap-1 items-center ">
+                        <p className="geist-font text-[16px] font-normal">Call ID :</p>
+                        <p className="geist-font text-[16px] font-medium">{previousCalls[callDetail]?.callingId}</p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <p className="geist-font text-[16px] font-normal">Peers who joined the call:</p>
+                        <div className="flex flex-col gap-3 pl-2">
+                            {previousCalls[callDetail]?.users?.map((user, ind) => (
+                                <div key={ind} className="bg-white dark:bg-[#0B121C] p-3 rounded-md shadow-sm border border-[#CDFCE7] dark:border-[#1E2C40]">
+                                    <p className="geist-font text-[14px] font-medium"><span className="geist-font text-[14px] font-normal">Name:</span> {user.firstName} {user.lastName}</p>
+                                    <p className="geist-font text-[14px] font-medium"><span className="geist-font text-[14px] font-normal">Email:</span> {user.email}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        }
+
+        <div className={`flex px-2 py-2 h-screen w-screen gap-2`}>
+
+            <div className={`flex flex-col w-[13%] px-3 py-1 h-2/3 z-20 bg-white border border-[#7AF8C1] dark:border-[#1E2C40] rounded  dark:bg-[#000000] dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C] ${(showCreate || showJoin || showCalendar || callDetail!==-1) ? 'pointer-events-none' : ''} `}>
+                
+                {(showCreate || showJoin || showCalendar || callDetail!==-1) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
 
                 <div className={`w-full flex justify-start p-3 z-20 `}>
                     <a href="/" className=" w-[80px] sm:w-[101px] h-[40px] sm:h-[54px]">
@@ -284,27 +355,27 @@ export default  function Dashboard() {
                     </a>
                 </div>
                 
-                <div className={`flex flex-col p-3 gap-3 `}>
-                    <div onClick={()=>{setShowCreate(true)}} className='items-center cursor-pointer border rounded px-4 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-white dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
+                <div className={`flex flex-col py-3 gap-2 `}>
+                    <div onClick={()=>{setShowCreate(true)}} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
                         <PlusIcon/>
                         Create Call
                     </div>
-                    <div onClick={()=>{setShowJoin(true)}} className='items-center cursor-pointer border rounded px-4 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-white dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
+                    <div onClick={()=>{setShowJoin(true)}} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] text-[#16422E] dark:text-white flex justify-start geist-font text-[14px] tracking-tight  font-medium'>
                         <EnterIcon/>
                         Join Call
                     </div>
-                    <div onClick={()=>{setShowCalendar(true)}} className='items-center cursor-pointer border rounded px-4 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-white dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
+                    <div onClick={()=>{setShowCalendar(true)}} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
                         <CalenderIcon/>
                         Schedule 
                     </div>
                 </div>
 
-                <div className={`flex flex-col p-3 gap-3 h-full justify-end `}>
-                    <div className='items-center cursor-pointer border rounded px-4 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-white dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
+                <div className={`flex flex-col py-3 gap-2 h-full justify-end `}>
+                    <div className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
                         <FeedbackIcon/>
                         Feedback
                     </div>
-                    <div className='items-center cursor-pointer border rounded px-4 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-white dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
+                    <div className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
                         <SettingIcon/>
                         Settings
                     </div>
@@ -312,17 +383,21 @@ export default  function Dashboard() {
 
             </div>
 
-            <div className={`flex-1 h-full z-20 flex flex-col gap-2 ${(showCreate || showJoin || showCalendar) ? 'pointer-events-none' : ''}`}>
+            <div className={`flex-1 h-full z-20 flex flex-col gap-2 ${(showCreate || showJoin || showCalendar || callDetail!==-1) ? 'pointer-events-none' : ''}`}>
 
-                {(showCreate || showJoin || showCalendar) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
+                {(showCreate || showJoin || showCalendar || callDetail!==-1) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
 
                 <div className='flex w-full px-3 py-2  border border-[#7AF8C1] dark:border-[#1E2C40] bg-white dark:bg-[#000000] rounded dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C]'>
                     <div className=" w-1/2 flex justify-start z-20 geist-font text-[20px]  text-[#16422E] dark:text-[#FFFFFF]">
                         Welcome {name} !
                     </div>
                     <div className="w-1/2 justify-end z-20 self-center items-center flex text-[#16422E] dark:text-white dark:font-normal gap-5">
+                        <div className='flex gap-2 items-center '>
+                            <SearchIcon />
+                            <input type="text" placeholder={`Search Previous Calls...`} className='rounded font-regular geist-font px-3 py-1 text-[14px] placeholder:text-[#16422E] placeholder:dark:text-[#0c1521] text-[#16422E] dark:text-[#0c1521] border border-gray-300 dark:border-[#1E2C40] bg-gray-100 outline-none'/>
+                        </div>
                         <ThemeToggle text={true} bg={true}/>
-                        <div onClick={logout} className='items-center cursor-pointer border rounded px-3 py-1 gap-2 border-[#7AF8C1] dark:border-[#1E2C40] bg-white dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
+                        <div onClick={logout} className='items-center cursor-pointer border border-red-500 rounded px-3 py-1 gap-2  flex justify-start geist-font text-[14px] tracking-tight text-white bg-red-500 font-medium'>
                             <LogoutIcon/>
                             Log out
                         </div>
@@ -335,18 +410,14 @@ export default  function Dashboard() {
                             <div className='geist-font text-[16px]  text-[#16422E] dark:text-[#FFFFFF]'>
                                 Previous Recorded Calls
                             </div>
-                            <div className='flex gap-2 items-center '>
-                                <SearchIcon />
-                                <input type="text" placeholder={`Search Previous Calls...`} className='rounded font-regular geist-font px-3 py-1 text-[14px] placeholder:text-[#16422E] placeholder:dark:text-[#0c1521] text-[#16422E] dark:text-[#0c1521] border border-[#7AF8C1] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-gray-300 outline-none'/>
-                            </div>
                         </div>
                         <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
                         <div className='flex w-full h-auto'>
-                            <div className='w-[9%] py-1 text-sm px-2 geist-font text-green-900 dark:text-gray-300'>Sr no.</div>
-                            <div className='w-[29%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Call Name</div>
-                            <div className='w-[19%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Date</div>
-                            <div className='w-[19%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Time</div>
-                            <div className='w-[20%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Duration</div>
+                            <div className='w-[7%] py-1 text-sm pl-2 geist-font text-green-900 dark:text-gray-300'>Sr no.</div>
+                            <div className='w-[30%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Call Name</div>
+                            <div className='w-[21%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Date</div>
+                            <div className='w-[21%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Time</div>
+                            <div className='w-[21%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Duration</div>
                         </div>
                         <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
                         <p className='flex items-center justify-center w-full h-full  z-20 geist-font text-3xl font-light text-[#16422E] dark:text-white'>
@@ -357,33 +428,63 @@ export default  function Dashboard() {
                     <div className='flex flex-col flex-1'>
                         <div className='flex items-center justify-between w-full px-3 py-1.5'>
                             <div className='geist-font text-[16px]  text-[#16422E] dark:text-[#FFFFFF]'>
-                                Scheduled Calls
+                                {show ? 'Scheduled Calls' : 'Call History'}
                             </div>
-                            <div onClick={()=>{setShowCalendar(true)}} className='items-center cursor-pointer border rounded px-3 py-1 gap-2 border-[#7AF8C1] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
-                                <PlusIcon/>
-                                add
+                            <div onClick={()=>{setShow(x=>!x)}} className='items-center cursor-pointer hover:underline hover:text-[#31C585] hover:dark:text-[#0076FC] px-3 gap-2 flex justify-end geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
+                                {!show ? 'Scheduled Calls?' : 'Call History?'}    
                             </div>
                         </div>
                         <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
                         <div className='flex w-full h-auto'>
                             <div className='w-[12%] py-1 text-sm px-2 geist-font text-green-900 dark:text-gray-300'>Sr no.</div>
-                            <div className='w-[38%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Call Name</div>
-                            <div className='w-[25%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Date</div>
-                            <div className='w-[25%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Time</div>
+                            <div className={`${show ? 'w-[38%]' : 'w-[30%]'} py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300`}>Call Name</div>
+                            <div className={`${show ? 'w-[25%]' : 'w-[40%]'} py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300`}>{show ? 'Date' : 'Call Id'}</div>
+                            <div className={`${show ? 'w-[25%]' : 'w-[18%]'} py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300`}>{show ? 'Time' : 'Peers'}</div>
                         </div>
                         <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
-                        
-                        {scheduledCalls.length==0 
-                        ? 
+
+                        {show && scheduledCalls.length==0 && 
                             <p className='flex items-center justify-center w-full h-full  z-20 geist-font text-3xl font-light text-[#16422E] dark:text-white'>
                                 No scheduled calls yet.
                             </p>
-                        :
-                            <div className='flex flex-col'>
-
+                        }
+                        {show && scheduledCalls.length>0 &&
+                            <div className='flex flex-col w-full h-full overflow-y-scroll scrollbar-none scroll-smooth no-scrollbar'>
+                                {scheduledCalls.map((call,index)=>(
+                                    <div key={index+1} className='flex flex-col w-full h-auto'>
+                                        <div className='flex w-full h-auto'>
+                                            <div className='w-[12%] py-1 text-[13px] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{index+1} . </div>
+                                            <div className='w-[38%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.slug}</div>
+                                            <div className='w-[25%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.date}</div>
+                                            <div className='w-[25%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.time}</div>
+                                        </div>
+                                        <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
+                                    </div>
+                                ))}
                             </div>
                         }
-                    
+
+                        {!show && previousCalls.length==0 &&
+                            <p className='flex items-center justify-center w-full h-full  z-20 geist-font text-3xl font-light text-[#16422E] dark:text-white'>
+                                No previous calls yet.
+                            </p>
+                        }   
+                        {!show && previousCalls.length>0 &&
+                            <div className='flex flex-col w-full h-full overflow-y-scroll scrollbar-none scroll-smooth no-scrollbar'>
+                                {previousCalls.map((call,index)=>(
+                                    <div key={index+1} className='flex flex-col w-full h-auto hover:dark:bg-gray-700 hover:bg-green-100 cursor-pointer' onClick={()=>setCallDetail(index)}>
+                                        <div className='flex w-full h-auto'>
+                                            <div className='w-[12%] py-1 text-[13px] px-2 geist-font dark:text-gray-300 text-green-900  text-center overflow-hidden'>{index+1}.</div>
+                                            <div className='w-[30%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.slug}</div>
+                                            <div className='w-[40%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.callingId}</div>
+                                            <div className='w-[18%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.peers}</div>
+                                        </div>
+                                        <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
+                                    </div>
+                                ))}
+                            </div>
+                        }
+
                     </div>
                 </div>
             
@@ -392,3 +493,17 @@ export default  function Dashboard() {
        
     </div>
 } 
+
+
+// add a timer which will show the closest approaching scheduled call
+// add feedback support
+// render feedbacks on landing page
+// add image for profiles and where previous calls details are rendered
+// instead of setting, render image and name of the user
+// add change password and forgot password for users who logged in using email and password through   
+// add change profile image and change firstName and lastName
+// add other profiles options
+
+//---------------------------------------
+
+// then the work for main functionality will begin OH GOD BLESS ME

@@ -16,7 +16,7 @@ export default function LogoutIcon(){
   return (
     <div className="flex">
         {theme === 'light'
-        ? <Logout stroke={"#16422E"} />
+        ? <Logout stroke={"#FFFFFF"} />
         : <Logout stroke={"#FFFFFF"} />}
     </div>      
   );
