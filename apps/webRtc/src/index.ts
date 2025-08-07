@@ -10,6 +10,7 @@ import { createWebRtcTransport} from './mediasoup/transport';
 import express from 'express';
 import multer from 'multer';
 import cors from 'cors';
+import {prismaClient} from '@repo/database/src/index';
 
 const app=express();
 app.use(express.json());
@@ -231,6 +232,24 @@ io.on('connect', async (socket: Socket) => {
     });
     return (items as any[]).filter(item => item.socketId !== socket.id);
   }
+  
+  async function callEnded(roomId : string) {
+    const response=await prismaClient.call.findFirst({
+      where : {
+        callingId : roomId
+      }
+    })
+    if(response){
+      await prismaClient.call.update({
+        where : {
+          id : response.id
+        },
+        data : {
+          ended : true
+        }
+      })
+    }
+  }
 
   socket.on('disconnect', async () => {
     console.log(`socket with id: ${socket.id} disconnected`);
@@ -254,9 +273,10 @@ io.on('connect', async (socket: Socket) => {
       }
       if (rooms[roomId].peers.length === 0) {
         console.log('length of peer 0')
-        if (rooms[roomId]){// && rooms[roomId].isRecording 
+        if (rooms[roomId] && rooms[roomId].isRecording ){ 
           rooms[roomId].isRecording = false;
           console.log('calling to merge layouts');
+          callEnded(roomId);
           setTimeout(()=>{queuePoll(roomId)},5000);
         } 
         delete rooms[roomId];

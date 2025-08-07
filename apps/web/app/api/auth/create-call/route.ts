@@ -9,7 +9,20 @@ const nextauth_secret = process.env.NEXTAUTH_SECRET!;
 
 
 export async function POST(req: NextRequest) {
-    
+    const now = new Date();
+
+    const formattedDate = now.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+    });
+
+    const formattedTime = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+    });
+
     try{
         const {callSlug}=await req.json();
         console.log('creating room with callSlug : ',callSlug);
@@ -64,7 +77,11 @@ export async function POST(req: NextRequest) {
                     connect :{
                         id : userId
                     }
-                }
+                },
+                date : formattedDate,
+                startTime : formattedTime,
+                recorded : false,
+                ended : false
             }
         })
         if(response1){

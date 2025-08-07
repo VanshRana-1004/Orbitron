@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@prisma/client": "^6.7.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/multer": "^2.0.0",
@@ -27,6 +28,7 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "@repo/database": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.15.3"
   }

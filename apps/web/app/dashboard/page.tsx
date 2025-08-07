@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { redirect } from 'next/navigation';
 import axios from 'axios';
 import { ThemeToggle } from 'app/components/theme-toggle/theme';
-import SearchIcon from 'app/components/icons/search';
 import PlusIcon from 'app/components/icons/plus';
 import FeedbackIcon from 'app/components/icons/feedback';
 import EnterIcon from 'app/components/icons/enter';
@@ -16,6 +15,7 @@ import 'react-day-picker/dist/style.css';
 import CrossIcon from 'app/components/icons/cross';
 import TimeSelector from 'app/components/time-selector/time';
 import DatePicker from 'app/components/date-selector/date';
+import HeartIcon from 'app/components/icons/heart';
 
 interface User{
     firstName : string,
@@ -57,20 +57,24 @@ export default  function Dashboard() {
     const [showJoin,setShowJoin]=useState(false);
     const [showCalendar,setShowCalendar]=useState(false);
     const [name,setName]=useState<string>('');
+    const [email,setEmail]=useState<string>('');
+    const [img,setImg]=useState<string>('');
+    const [id,setId]=useState<string>('');
     const scheduledCallNameRef=useRef<HTMLInputElement>(null);
     const idRef=useRef<string>('');
     const [scheduledCalls, setScheduledCalls] = useState<{slug: string; date: string; time: string }[]>([]);
-    const [previousCalls, setPreviousCalls] = useState<{slug: string; callingId: string; peers: string,users : User[]}[]>([]);
+    const [previousCalls, setPreviousCalls] = useState<{slug: string, callingId: string, peers: string,date : string,time : string,recorded : boolean,users : User[]}[]>([]);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [selectedTime, setSelectedTime] = useState<{ hours: number; minutes: number; ampm: 'AM' | 'PM' }>(getCurrentTime());
     const [show,setShow]=useState<boolean>(false); 
     const [auth,setAuth]=useState<boolean>(false);
     const [callDetail,setCallDetail]=useState<number>(-1);
+    const [feedBack,setFeedback]=useState<boolean>(false);
+    const feedbackRef=useRef<HTMLTextAreaElement>(null);
 
     const handleTimeChange = (time: { hours: number; minutes: number; ampm: 'AM' | 'PM' }) => {
         setSelectedTime(time);
     };
-
     
     const formatDate = (date?: Date) => {
         return date ? date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'none';
@@ -82,13 +86,15 @@ export default  function Dashboard() {
         return `${paddedHours}:${paddedMinutes} ${time.ampm}`;
     };
 
-
     useEffect(()=>{
         async function getInfo(){
             try{
                 const res1=await axios.get('/api/auth/me');
                 console.log(res1.data);
                 setName(res1.data.user.name);
+                setImg(res1.data.user.image);
+                setEmail(res1.data.user.email);
+                setId(res1.data.user.id)
                 if(name=='') setName(`${res1.data.user.firstName} ${res1.data.user.lastName}`)
                 idRef.current=res1.data.user.id;
                 console.log(res1.data.user.id);
@@ -121,17 +127,20 @@ export default  function Dashboard() {
                     params : {userId : Number(idRef.current)} 
                 });
                 console.log(res2);
-                const callData : {slug: string; callingId: string; peers: string,users : User[]}[]=[];
+                const callData : {slug: string; callingId: string; peers: string,date : string,time : string,recorded : boolean,users : User[]}[]=[];
                 for(let i=0;i<res2.data.res.length;i++){
                     const slug=res2.data.res[i].call.slug;
                     const callingId=res2.data.res[i].call.callingId;
                     const peers=res2.data.res[i].call.callUserTimes.length;
                     const users : User[]=[];
                     const temp=res2.data.res[i].call.callUserTimes;
+                    const date=res2.data.res[i].call.date;
+                    const time=res2.data.res[i].call.startTime;
+                    const recorded=res2.data.res[i].call.recorded
                     temp.map((x : any)=>(
                         users.push({firstName : x.user.firstName,lastName : x.user.lastName,email : x.user.email,img : x.user.profileImage})
                     ))
-                    callData.push({slug,callingId,peers,users})
+                    callData.push({slug,callingId,peers,date,time,recorded,users})
                 }
                 setPreviousCalls(callData);
             }
@@ -209,6 +218,23 @@ export default  function Dashboard() {
         }
     }
 
+    async function sendFeedback(){
+        try{
+            const fb=feedbackRef.current?.value;
+            const res=await axios.post('/api/auth/feedback',{
+                id,
+                fb,
+                name,
+                img,
+                email 
+            })
+            console.log(res);
+            setFeedback(false);
+        }catch(e){
+            console.log('error while sending feedback')
+        }
+    }
+
     return <div className="bg-white dark:bg-zinc-950 flex flex-col items-center min-h-screen bg-[url('/light-bg.png')] dark:bg-[url('/dark-landing-bg-1.png')] bg-cover bg-center">
         
         {(showCreate || showJoin) && <div className='flex flex-col p-3 gap-3 fixed top-1/2 -translate-x-1/2 left-1/2 -translate-y-1/2 w-1/3 h-auto z-30 bg-white dark:bg-[#02060D] rounded border border-[#7AF8C1] dark:border-[#1E2C40]'>
@@ -275,7 +301,6 @@ export default  function Dashboard() {
                             </div>
                         </div>
 
-                        
                         <div className='absolute flex w-auto gap-2 items-center bottom-0 right-0'>
                             <div onClick={()=>{setShowCalendar(false)}} className='cursor-pointer px-3 py-0.5 border rounded border-[#d1ffeb] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-[#0c1423] flex justify-center items-center geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>Cancel</div>
                             <div className='cursor-pointer px-3 py-0.5 border rounded border-[#16422E] dark:border-[#1E2C40] bg-[#16422E] dark:bg-[#0076FC] flex justify-center items-center geist-font text-[14px] tracking-tight text-white font-medium' onClick={scheduleCall}>Done</div>
@@ -317,6 +342,21 @@ export default  function Dashboard() {
                         <p className="geist-font text-[16px] font-medium">{previousCalls[callDetail]?.callingId}</p>
                     </div>
 
+                    <div className="flex gap-1 items-center ">
+                        <p className="geist-font text-[16px] font-normal">Date :</p>
+                        <p className="geist-font text-[16px] font-medium">{previousCalls[callDetail]?.date}</p>
+                    </div>
+
+                    <div className="flex gap-1 items-center ">
+                        <p className="geist-font text-[16px] font-normal">Time :</p>
+                        <p className="geist-font text-[16px] font-medium">{previousCalls[callDetail]?.time}</p>
+                    </div>
+                    
+                    <div className="flex gap-1 items-center ">
+                        <p className="geist-font text-[16px] font-normal">Recorded :</p>
+                        <p className="geist-font text-[16px] font-medium">{previousCalls[callDetail]?.recorded ? 'yes' : 'no'}</p>
+                    </div>
+
                     <div className="flex flex-col gap-2">
                         <p className="geist-font text-[16px] font-normal">Peers who joined the call:</p>
                         <div className="flex flex-col gap-3 pl-2">
@@ -333,11 +373,31 @@ export default  function Dashboard() {
             </div>
         }
 
+        {feedBack && 
+            <div className='flex flex-col p-3 gap-3 fixed top-1/2 -translate-x-1/2 left-1/2 -translate-y-1/2 w-1/3 h-auto z-30 bg-white dark:shadow-none dark:bg-[#02060D] rounded border border-[#7AF8C1] dark:border-[#1E2C40]'>
+
+                <div className='flex justify-between items-center w-full'>
+                    <div className='flex gap-1 items-center geist-font text-[20px] font-semibold text-[#16422E] dark:text-[#0076FC]'>
+                        Enter your feedback <HeartIcon/>
+                    </div>
+                    <div onClick={()=>{setFeedback(false)}} className='cursor-pointer'><CrossIcon/></div>
+                </div> 
+
+                <textarea ref={feedbackRef} rows={4} className="w-full p-2 text-[#16422E] dark:text-gray-300 border border-[#7AF8C1] dark:border-[#1E2C40] geist-font text-[16px] font-light resize-none rounded-md focus:ring-1 bg-transparent"/>
+
+                <div className='w-full flex gap-2 items-center justify-end'>
+                    <div onClick={()=>{setFeedback(false)}} className='cursor-pointer px-3 py-0.5 border rounded border-[#d1ffeb] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-[#0c1423] flex justify-center items-center geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>Cancel</div>
+                    <div className='cursor-pointer px-3 py-0.5 border rounded border-[#16422E] dark:border-[#1E2C40] bg-[#16422E] dark:bg-[#0076FC] flex justify-center items-center geist-font text-[14px] tracking-tight text-white font-medium' onClick={sendFeedback}>send</div>
+                </div>
+
+            </div>
+        }
+
         <div className={`flex px-2 py-2 h-screen w-screen gap-2`}>
 
-            <div className={`flex flex-col w-[13%] px-3 py-1 h-2/3 z-20 bg-white border border-[#7AF8C1] dark:border-[#1E2C40] rounded  dark:bg-[#000000] dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C] ${(showCreate || showJoin || showCalendar || callDetail!==-1) ? 'pointer-events-none' : ''} `}>
+            <div className={`flex flex-col w-[13%] px-3 py-1 h-2/3 z-20 bg-white border border-[#7AF8C1] dark:border-[#1E2C40] rounded  dark:bg-[#000000] dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C] ${(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack) ? 'pointer-events-none' : ''} `}>
                 
-                {(showCreate || showJoin || showCalendar || callDetail!==-1) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
+                {(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
 
                 <div className={`w-full flex justify-start p-3 z-20 `}>
                     <a href="/" className=" w-[80px] sm:w-[101px] h-[40px] sm:h-[54px]">
@@ -371,7 +431,7 @@ export default  function Dashboard() {
                 </div>
 
                 <div className={`flex flex-col py-3 gap-2 h-full justify-end `}>
-                    <div className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
+                    <div onClick={()=>setFeedback(true)} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
                         <FeedbackIcon/>
                         Feedback
                     </div>
@@ -383,19 +443,16 @@ export default  function Dashboard() {
 
             </div>
 
-            <div className={`flex-1 h-full z-20 flex flex-col gap-2 ${(showCreate || showJoin || showCalendar || callDetail!==-1) ? 'pointer-events-none' : ''}`}>
+            <div className={`flex-1 h-full z-20 flex flex-col gap-2 ${(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack) ? 'pointer-events-none' : ''}`}>
 
-                {(showCreate || showJoin || showCalendar || callDetail!==-1) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
+                {(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
 
                 <div className='flex w-full px-3 py-2  border border-[#7AF8C1] dark:border-[#1E2C40] bg-white dark:bg-[#000000] rounded dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C]'>
                     <div className=" w-1/2 flex justify-start z-20 geist-font text-[20px]  text-[#16422E] dark:text-[#FFFFFF]">
                         Welcome {name} !
                     </div>
                     <div className="w-1/2 justify-end z-20 self-center items-center flex text-[#16422E] dark:text-white dark:font-normal gap-5">
-                        <div className='flex gap-2 items-center '>
-                            <SearchIcon />
-                            <input type="text" placeholder={`Search Previous Calls...`} className='rounded font-regular geist-font px-3 py-1 text-[14px] placeholder:text-[#16422E] placeholder:dark:text-[#0c1521] text-[#16422E] dark:text-[#0c1521] border border-gray-300 dark:border-[#1E2C40] bg-gray-100 outline-none'/>
-                        </div>
+                        
                         <ThemeToggle text={true} bg={true}/>
                         <div onClick={logout} className='items-center cursor-pointer border border-red-500 rounded px-3 py-1 gap-2  flex justify-start geist-font text-[14px] tracking-tight text-white bg-red-500 font-medium'>
                             <LogoutIcon/>
@@ -413,11 +470,11 @@ export default  function Dashboard() {
                         </div>
                         <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
                         <div className='flex w-full h-auto'>
-                            <div className='w-[7%] py-1 text-sm pl-2 geist-font text-green-900 dark:text-gray-300'>Sr no.</div>
+                            <div className='w-[8%] py-1 text-sm pl-2 geist-font text-green-900 dark:text-gray-300'>Sr no.</div>
                             <div className='w-[30%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Call Name</div>
-                            <div className='w-[21%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Date</div>
-                            <div className='w-[21%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Time</div>
-                            <div className='w-[21%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Duration</div>
+                            <div className='w-[30%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Call Id</div>
+                            <div className='w-[16%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Date</div>
+                            <div className='w-[16%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Time</div>
                         </div>
                         <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
                         <p className='flex items-center justify-center w-full h-full  z-20 geist-font text-3xl font-light text-[#16422E] dark:text-white'>
@@ -450,17 +507,18 @@ export default  function Dashboard() {
                         }
                         {show && scheduledCalls.length>0 &&
                             <div className='flex flex-col w-full h-full overflow-y-scroll scrollbar-none scroll-smooth no-scrollbar'>
-                                {scheduledCalls.map((call,index)=>(
-                                    <div key={index+1} className='flex flex-col w-full h-auto'>
-                                        <div className='flex w-full h-auto'>
-                                            <div className='w-[12%] py-1 text-[13px] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{index+1} . </div>
+                                {scheduledCalls.map((call,index)=>{
+                                    const isPast = new Date(`${call.date} ${call.time}`) < new Date();
+                                    return (<div key={index+1} className='flex flex-col w-full h-auto'>
+                                        <div className={`flex w-full h-auto ${isPast && 'opacity-50'}`}>
+                                            <div className='w-[12%] py-1 text-[13px] px-2 geist-font text-center text-green-900 dark:text-gray-300 overflow-hidden'>{index+1}. </div>
                                             <div className='w-[38%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.slug}</div>
                                             <div className='w-[25%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.date}</div>
                                             <div className='w-[25%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.time}</div>
                                         </div>
                                         <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
-                                    </div>
-                                ))}
+                                    </div>)
+                                })}
                             </div>
                         }
 

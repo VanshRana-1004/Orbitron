@@ -30,8 +30,12 @@ model User {
 model Call {
   id            Int            @id @default(autoincrement())
   slug          String         
-  callingId     String?
+  callingId     String
   users         User[]         @relation("UserToCall")
+  recorded      Boolean         
+  ended         Boolean
+  startTime     String
+  date          String
   callUserTimes CallUserTime[]
   @@map("call")
 }
@@ -80,4 +84,13 @@ model Clip {
   recordedCall  RecordedCalls  @relation(fields: [callId], references: [id])
 
   @@index([callId, clipNumber]) 
+}
+
+model Feedback {
+  id            Int            @id @default(autoincrement())
+  userId        Int 
+  name          String
+  email         String
+  img           String
+  comment       String
 }
