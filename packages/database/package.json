@@ -1,24 +1,29 @@
 {
   "name": "@repo/database",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "prisma generate"
+    "build": "tsc && prisma generate"
   },
   "exports": {
-    "./client": "./src/index.ts"
+    "./client": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@prisma/client": "^6.7.0",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*"
   },
   "dependencies": {
-    "@prisma/client": "^6.7.0",
     "prisma": "^6.7.0"
   }
 }
+
+

@@ -1,9 +1,14 @@
 {
   "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
-    "composite": true,
-    "incremental": true,
-    "noEmit": false,
-    // You can override or add extra options here
-  }
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node16",
+    "target": "es2020",
+    "module": "Node16",
+    "skipLibCheck": true
+  },
+  "include": ["src"]
 }

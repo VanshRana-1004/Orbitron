@@ -12,6 +12,8 @@ import CloudIcon from "./components/icons/cloud";
 import LockIcon from "./components/icons/lock";
 import LayoutIcon from "./components/icons/layout";
 import ComputerIcon from "./components/icons/computer";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 export default function Home() {
   const router = useRouter();
@@ -26,6 +28,19 @@ export default function Home() {
         alert("Something went wrong.");
     }
   };
+  const [fb,setFb]=useState<number>(1);
+
+  useEffect(()=>{
+    async function getFeedbacks(){
+      const res=await axios.get('/api/auth/get-feedback',{
+        params : {
+          page : fb-1 
+        }
+      });
+      console.log(res.data);
+    }
+    if(fb%4===1) getFeedbacks();
+  },[fb]);
   
   return <div className="relative min-h-screen w-full overflow-hidden">
   
@@ -170,7 +185,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="relative h-[900px] overflow-visible w-full flex flex-col justify-evenly bg-[#f7fffb] dark:bg-[#03070E]">
+      <div className="relative h-[1000px] overflow-visible w-full flex flex-col justify-evenly bg-[#f7fffb] dark:bg-[#03070E]">
         <div className="absolute flex flex-col overflow-visible self-end right-0 top-0 w-1/2 h-screen rounded-bl-full bg-[radial-gradient(at_bottom_right,_#e0feef_100%,_#FFFFFF_0%)] dark:bg-[radial-gradient(circle_at_top_right,_#02060D_5%,_#0B0F17_95%)]"></div>
         <div className="flex z-20 flex-col justify-evenly items-center gap-2 w-[60%] h-[25%] self-center rounded-[20px] bg-gradient-to-rb from-[#CDFCE7] via-[#A5EFCE] to-[#A5EFCE] backdrop-blur-[70.9px] border-[#7AF8C1] dark:from-[#00040B] dark:via-[#00040B] dark:to-[#172332] dark:border-[#1d2d42] border-[1.42px] shadow-[inset_0_0_70.9px_#EDFBF5] dark:shadow-[inset_0_0_20px_#182537]">
           <div className="geist-font z-20 font-semibold text-3xl text-[#16422E] dark:text-white">Try it out — experience the call flow!</div>
@@ -179,10 +194,10 @@ export default function Home() {
             <div onClick={()=>{router.push('/login')}} className="py-2 z-20 px-20 font-inter cursor-pointer font-semibold rounded-lg text-white bg-[#31C585] dark:bg-white dark:text-[#03070E]">Continue with Email</div>
           </div>
         </div>
-        <div className="flex z-20 flex-col justify-evenly items-center w-[60%] h-[25%] self-center rounded-[20px] bg-gradient-to-rb from-[#CDFCE7] via-[#A5EFCE] to-[#A5EFCE] backdrop-blur-[70.9px] border-[#7AF8C1] dark:from-[#00040B] dark:via-[#00040B] dark:to-[#172332] dark:border-[#1d2d42] border-[1.42px] shadow-[inset_0_0_70.9px_#EDFBF5] dark:shadow-[inset_0_0_20px_#182537]">
-          <div className="geist-font z-20 font-semibold text-3xl text-[#16422E] dark:text-white">User's Reviews</div>
-          <div className="geist-font z-20 text-[#16422E] dark:text-[#FFFFFF]">No reviews yet - be the first to share your thoughts</div>
+        <div className="w-[80%] flex flex-col z-20 self-center items-center">
+          <p className="geist-font z-20 font-semibold text-3xl text-[#16422E] dark:text-white">User's Reviews</p>
         </div>
+
       </div>
 
       <div className="flex z-20 px-36 py-10 gap-6 flex-col justify-start h-[300px] w-full bg-[#DFFFF0] dark:bg-[#03070E] border-t-2 border-t-[#c0ffe1] dark:border-t-[#0D1523] shadow-[inset_0_6px_6px_-4px_#FFFFFF] dark:shadow-[inset_0_6px_6px_-4px_#0D1523]">

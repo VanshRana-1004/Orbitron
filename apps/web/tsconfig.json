@@ -1,6 +1,7 @@
 {
   "extends": "@repo/typescript-config/nextjs.json",
   "compilerOptions": {
+    // "moduleResolution": "node16",
     "plugins": [
       {
         "name": "next"
@@ -12,7 +13,7 @@
         "apps/webRtc/src"
       ]
     },
-    "noEmit": true
+    "noEmit": true,
   },
   "include": [
     "**/*.ts",

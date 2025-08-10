@@ -35,7 +35,7 @@ export const authOptions: NextAuthOptions = {
   ],
   secret: process.env.NEXTAUTH_SECRET,
   callbacks:{
-    async jwt({ token, user, account, profile }) {
+    async jwt({ token, user, account, profile } : any) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -63,7 +63,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
 
-    async session({ session, token }) {
+    async session({ session, token } : any ) {
       console.log(token);
       if (token && session.user) {
         session.user.id = token.id ? String(token.id) : "";
@@ -75,7 +75,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
 
-    async signIn({ account, profile }) {
+    async signIn({ account, profile } : any) {
       const email = profile?.email;
 
       try {
@@ -84,7 +84,7 @@ export const authOptions: NextAuthOptions = {
           where: { email },
         });
 
-        if (existingUser && !existingUser.oauth) {
+        if (existingUser && existingUser.oauth===false) {
           console.warn(`OAuth blocked: ${email} already registered with password.`);
           return false; 
         }

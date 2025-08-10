@@ -26,6 +26,9 @@ importers:
       '@prisma/client':
         specifier: ^6.7.0
         version: 6.7.0(prisma@6.7.0(typescript@5.8.2))(typescript@5.8.2)
+      '@repo/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -132,9 +135,6 @@ importers:
         specifier: ^3.24.3
         version: 3.24.3
     devDependencies:
-      '@repo/database':
-        specifier: workspace:*
-        version: link:../../packages/database
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint-config
@@ -162,6 +162,9 @@ importers:
       '@prisma/client':
         specifier: ^6.7.0
         version: 6.7.0(prisma@6.7.0(typescript@5.8.2))(typescript@5.8.2)
+      '@repo/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@types/cors':
         specifier: ^2.8.17
         version: 2.8.17
@@ -202,25 +205,28 @@ importers:
         specifier: ^4.8.1
         version: 4.8.1
     devDependencies:
-      '@repo/database':
+      '@repo/eslint-config':
         specifier: workspace:*
-        version: link:../../packages/database
+        version: link:../../packages/eslint-config
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@types/node':
         specifier: ^22.15.3
         version: 22.15.3
+      typescript:
+        specifier: ^5.8.2
+        version: 5.8.2
 
   packages/database:
     dependencies:
-      '@prisma/client':
-        specifier: ^6.7.0
-        version: 6.7.0(prisma@6.7.0(typescript@5.8.2))(typescript@5.8.2)
       prisma:
         specifier: ^6.7.0
         version: 6.7.0(typescript@5.8.2)
     devDependencies:
+      '@prisma/client':
+        specifier: ^6.7.0
+        version: 6.7.0(prisma@6.7.0(typescript@5.8.2))(typescript@5.8.2)
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
@@ -3436,6 +3442,7 @@ packages:
   typescript@5.8.2:
     resolution: {integrity: sha512-aJn6wq13/afZp/jT9QZmwEjDqqvSGp1VT5GVg+f/t6/oVyrgXM6BY1h9BRh/O5p3PlUPAe+WuiEZOmb/49RqoQ==}
     engines: {node: '>=14.17'}
+    hasBin: true
 
   ua-is-frozen@0.1.2:
     resolution: {integrity: sha512-RwKDW2p3iyWn4UbaxpP2+VxwqXh0jpvdxsYpZ5j/MLLiQOfbsV5shpgQiw93+KMYQPcteeMQ289MaAFzs3G9pw==}

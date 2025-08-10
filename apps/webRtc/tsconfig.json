@@ -1,11 +1,10 @@
 {
   "extends":"@repo/typescript-config/base.json",
   "compilerOptions": {
-    "module": "commonjs",
     "target": "es2020",
     "lib": ["es2020"],
     "types": ["node"],
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,

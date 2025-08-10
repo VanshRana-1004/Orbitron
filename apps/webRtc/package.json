@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@repo/database": "workspace:*",
     "@prisma/client": "^6.7.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
@@ -28,8 +29,10 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
-    "@repo/database": "workspace:*",
+    "typescript": "^5.8.2",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "^22.15.3"
+    "@types/node": "^22.15.3",
+    "@repo/eslint-config": "workspace:*"
   }
 }
+

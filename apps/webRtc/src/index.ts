@@ -10,7 +10,7 @@ import { createWebRtcTransport} from './mediasoup/transport';
 import express from 'express';
 import multer from 'multer';
 import cors from 'cors';
-import {prismaClient} from '@repo/database/src/index';
+import { prismaClient } from "@repo/database/client"
 
 const app=express();
 app.use(express.json());

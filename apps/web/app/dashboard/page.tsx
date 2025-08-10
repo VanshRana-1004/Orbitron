@@ -58,7 +58,7 @@ export default  function Dashboard() {
     const [showCalendar,setShowCalendar]=useState(false);
     const [name,setName]=useState<string>('');
     const [email,setEmail]=useState<string>('');
-    const [img,setImg]=useState<string>('');
+    const [img,setImg]=useState<string>('/defaultpc.png');
     const [id,setId]=useState<string>('');
     const scheduledCallNameRef=useRef<HTMLInputElement>(null);
     const idRef=useRef<string>('');
@@ -383,10 +383,10 @@ export default  function Dashboard() {
                     <div onClick={()=>{setFeedback(false)}} className='cursor-pointer'><CrossIcon/></div>
                 </div> 
 
-                <textarea ref={feedbackRef} rows={4} className="w-full p-2 text-[#16422E] dark:text-gray-300 border border-[#7AF8C1] dark:border-[#1E2C40] geist-font text-[16px] font-light resize-none rounded-md focus:ring-1 bg-transparent"/>
+                <textarea ref={feedbackRef} rows={4} className="w-full p-2 text-[#16422E] dark:text-gray-300 border border-[#7AF8C1] dark:border-[#1E2C40] geist-font text-[16px] font-light resize-none rounded-md focus:ring-0 outline-none bg-transparent"/>
 
                 <div className='w-full flex gap-2 items-center justify-end'>
-                    <div onClick={()=>{setFeedback(false)}} className='cursor-pointer px-3 py-0.5 border rounded border-[#d1ffeb] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-[#0c1423] flex justify-center items-center geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>Cancel</div>
+                    <div onClick={()=>{setFeedback(false)}} className='cursor-pointer px-3 py-0.5 border rounded border-[#d1ffeb] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-[#0c1423] flex justify-center items-center geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium '>Cancel</div>
                     <div className='cursor-pointer px-3 py-0.5 border rounded border-[#16422E] dark:border-[#1E2C40] bg-[#16422E] dark:bg-[#0076FC] flex justify-center items-center geist-font text-[14px] tracking-tight text-white font-medium' onClick={sendFeedback}>send</div>
                 </div>
 
@@ -395,49 +395,52 @@ export default  function Dashboard() {
 
         <div className={`flex px-2 py-2 h-screen w-screen gap-2`}>
 
-            <div className={`flex flex-col w-[13%] px-3 py-1 h-2/3 z-20 bg-white border border-[#7AF8C1] dark:border-[#1E2C40] rounded  dark:bg-[#000000] dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C] ${(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack) ? 'pointer-events-none' : ''} `}>
+            <div className={`flex flex-col w-[13%] h-full z-20 gap-2 ${(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack) ? 'pointer-events-none' : ''} `}>
                 
                 {(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
 
-                <div className={`w-full flex justify-start p-3 z-20 `}>
-                    <a href="/" className=" w-[80px] sm:w-[101px] h-[40px] sm:h-[54px]">
-                        <img
-                            src="/logo.png"
-                            alt="My Logo"
-                            className="w-full h-full object-contain dark:hidden"
-                        />
+                <div className='flex flex-col px-3 py-2 pb-5 items-center w-full h-2/3 bg-white border border-[#7AF8C1] dark:border-[#1E2C40] rounded  dark:bg-[#000000] dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C]'>
+                    <div className={`w-full flex justify-start p-3 z-20 `}>
+                        <a href="/" className=" w-[80px] sm:w-[101px] h-[40px] sm:h-[54px]">
+                            <img
+                                src="/logo.png"
+                                alt="My Logo"
+                                className="w-full h-full object-contain dark:hidden"
+                            />
 
-                        <img
-                            src="/logo-dark.png"
-                            alt="My Dark Logo"
-                            className="w-full h-full object-contain hidden dark:block"
-                        />
-                    </a>
-                </div>
-                
-                <div className={`flex flex-col py-3 gap-2 `}>
-                    <div onClick={()=>{setShowCreate(true)}} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
-                        <PlusIcon/>
-                        Create Call
+                            <img
+                                src="/logo-dark.png"
+                                alt="My Dark Logo"
+                                className="w-full h-full object-contain hidden dark:block"
+                            />
+                        </a>
                     </div>
-                    <div onClick={()=>{setShowJoin(true)}} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] text-[#16422E] dark:text-white flex justify-start geist-font text-[14px] tracking-tight  font-medium'>
-                        <EnterIcon/>
-                        Join Call
+                    
+                    <div className={`flex flex-col py-3 gap-2 w-full`}>
+                        <div onClick={()=>{setShowCreate(true)}} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
+                            <PlusIcon/>
+                            Create Call
+                        </div>
+                        <div onClick={()=>{setShowJoin(true)}} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] text-[#16422E] dark:text-white flex justify-start geist-font text-[14px] tracking-tight  font-medium'>
+                            <EnterIcon/>
+                            Join Call
+                        </div>
+                        <div onClick={()=>{setShowCalendar(true)}} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
+                            <CalenderIcon/>
+                            Schedule 
+                        </div>
                     </div>
-                    <div onClick={()=>{setShowCalendar(true)}} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
-                        <CalenderIcon/>
-                        Schedule 
-                    </div>
-                </div>
 
-                <div className={`flex flex-col py-3 gap-2 h-full justify-end `}>
-                    <div onClick={()=>setFeedback(true)} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
+                    <div onClick={()=>setFeedback(true)} className='mt-auto items-center cursor-pointer border rounded w-full px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
                         <FeedbackIcon/>
                         Feedback
                     </div>
-                    <div className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
-                        <SettingIcon/>
-                        Settings
+                </div>
+
+                <div className='my-auto cursor-pointer hover:shadow-none hover:border-[#16422E] hover:dark:border-white w-full flex justify-evenly px-5 py-2 items-center border-2 rounded-[200px] bg-white border-[#7AF8C1] dark:border-[#1E2C40]  dark:bg-[#000000] dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C]'>
+                    <p className='geist-font text-[16px] font-medium text-[#16422E] dark:text-white'>{name}</p>
+                    <div className='w-9 h-9 bg-black rounded-full object-cover content-center border border-[#7AF8C1] dark:border-[#1E2C40]'>
+                        <img src={img} alt="" className='w-full h-full rounded-full'/>
                     </div>
                 </div>
 

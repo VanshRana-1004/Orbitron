@@ -121,6 +121,7 @@ export function Authentication() {
     }
 
     const handleGoogleLogin = async () => {
+        setError(null);
         try {
             setIsRedirecting(true);
             await signIn('google', {
