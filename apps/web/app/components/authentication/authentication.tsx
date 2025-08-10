@@ -263,11 +263,7 @@ export function Authentication() {
                         <OpenEye onClick={() => setType("password")} className="stroke-[#16422E] dark:stroke-white cursor-pointer" color="#FFFFFF" width="24px" height="24px" />
                         )}
                     </div>
-                    {sign && (
-                        <a className="block text-end text-[12px] text-[#16422E] dark:text-white mt-2 hover:underline cursor-pointer font-inter">
-                            Forgot password?
-                        </a>
-                    )}
+                    
                 </div>
             </div>
 

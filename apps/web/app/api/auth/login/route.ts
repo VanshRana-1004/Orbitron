@@ -36,7 +36,7 @@ export async function POST(req: Request) {
         }
     }
     
-    const token = jwt.sign({ id: response.id, firstName: response.firstName, lastName:response.lastName }, jwt_secret, {expiresIn: '7d'});
+    const token = jwt.sign({ id: response.id, firstName: response.firstName, lastName:response.lastName,image:response.profileImage || '', email:response.email}, jwt_secret, {expiresIn: '7d'});
     const res = NextResponse.json({ message: 'Login successful' });
     res.headers.set('Set-Cookie', getAuthCookie(token));
     return res;

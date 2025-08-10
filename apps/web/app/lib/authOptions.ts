@@ -48,6 +48,7 @@ export const authOptions: NextAuthOptions = {
           token.id = dbUser.id;
           token.firstName = dbUser.firstName;
           token.lastName = dbUser.lastName;
+          token.image = dbUser.profileImage || token.image || null;
         }
       } 
       else if (account?.provider === "google" && token.email && !token.id) {
@@ -58,6 +59,7 @@ export const authOptions: NextAuthOptions = {
           token.id = dbUser.id;
           token.firstName = dbUser.firstName;
           token.lastName = dbUser.lastName;
+          token.image = dbUser.profileImage || token.image || user.image || null;
         }
       }
       return token;
@@ -71,6 +73,7 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name || "";
         session.user.firstName = typeof token.firstName === "string" ? token.firstName : null;
         session.user.lastName = typeof token.lastName === "string" ? token.lastName : null;
+        session.user.image = token.image || null; 
       }
       return session;
     },
@@ -101,8 +104,7 @@ export const authOptions: NextAuthOptions = {
             oauth: true,
           },
           update: {
-            firstName,
-            lastName,
+
           },
         });
 

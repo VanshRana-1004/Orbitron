@@ -8,7 +8,6 @@ import PlusIcon from 'app/components/icons/plus';
 import FeedbackIcon from 'app/components/icons/feedback';
 import EnterIcon from 'app/components/icons/enter';
 import CalenderIcon from 'app/components/icons/calender';
-import SettingIcon from 'app/components/icons/setting';
 import LogoutIcon from 'app/components/icons/logout';
 import { signOut } from 'next-auth/react';
 import 'react-day-picker/dist/style.css';
@@ -16,6 +15,8 @@ import CrossIcon from 'app/components/icons/cross';
 import TimeSelector from 'app/components/time-selector/time';
 import DatePicker from 'app/components/date-selector/date';
 import HeartIcon from 'app/components/icons/heart';
+import DoneIcon from 'app/components/icons/done';
+import EditIcon from 'app/components/icons/edit';
 
 interface User{
     firstName : string,
@@ -58,6 +59,8 @@ export default  function Dashboard() {
     const [showCalendar,setShowCalendar]=useState(false);
     const [name,setName]=useState<string>('');
     const [email,setEmail]=useState<string>('');
+    const [firstName,setFirstName]=useState<string>('');
+    const [lastName,setLastName]=useState<string>(''); 
     const [img,setImg]=useState<string>('/defaultpc.png');
     const [id,setId]=useState<string>('');
     const scheduledCallNameRef=useRef<HTMLInputElement>(null);
@@ -69,8 +72,18 @@ export default  function Dashboard() {
     const [show,setShow]=useState<boolean>(false); 
     const [auth,setAuth]=useState<boolean>(false);
     const [callDetail,setCallDetail]=useState<number>(-1);
+    const [showProfile,setShowProfile]=useState<boolean>(false);
     const [feedBack,setFeedback]=useState<boolean>(false);
     const feedbackRef=useRef<HTMLTextAreaElement>(null);
+    const [fnChange,setFnChange]=useState<boolean>(false);
+    const [lnChange,setLnChange]=useState<boolean>(false);
+    const [imgChange,setImageChange]=useState<boolean>(false);
+    const fnRef=useRef<HTMLInputElement>(null);
+    const lnRef=useRef<HTMLInputElement>(null);
+    const [preview, setPreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [selectedFile,setSelectedFile]=useState<File | null>(null);
+
 
     const handleTimeChange = (time: { hours: number; minutes: number; ampm: 'AM' | 'PM' }) => {
         setSelectedTime(time);
@@ -92,9 +105,11 @@ export default  function Dashboard() {
                 const res1=await axios.get('/api/auth/me');
                 console.log(res1.data);
                 setName(res1.data.user.name);
-                setImg(res1.data.user.image);
+                if(res1.data.user.image!=='') setImg(res1.data.user.image);
                 setEmail(res1.data.user.email);
                 setId(res1.data.user.id)
+                setLastName(res1.data.user.lastName);
+                setFirstName(res1.data.user.firstName);
                 if(name=='') setName(`${res1.data.user.firstName} ${res1.data.user.lastName}`)
                 idRef.current=res1.data.user.id;
                 console.log(res1.data.user.id);
@@ -232,6 +247,55 @@ export default  function Dashboard() {
             setFeedback(false);
         }catch(e){
             console.log('error while sending feedback')
+        }
+    }
+
+    async function doneChanges(){
+        let fn=firstName;
+        let ln=lastName;
+        if(fnRef.current?.value && fnRef.current.value.length>=3){
+            fn=fnRef.current.value;
+        }
+        if(lnRef.current?.value && lnRef.current.value.length>=3){
+            ln=lnRef.current.value;
+        }
+        console.log(fn," ",ln);
+        const formData = new FormData();
+        formData.append("fn", fn);
+        formData.append("ln", ln);
+        formData.append("id", String(id));
+        if (selectedFile) {
+            formData.append("file", selectedFile);
+        }
+        try{
+            const res=await axios.post("/api/auth/update-info", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+            console.log(res);
+            setFirstName(fn);
+            setLastName(ln);
+            setName(fn + " " + ln);
+            setShowProfile(false);
+            setImg(res.data.imageUrl);
+            console.log(`successfully updated user's profile info`);
+        }
+        catch(e){
+            console.log(`error while updating user's profile info`);
+        }
+        setLnChange(false);
+        setFnChange(false);
+        setImageChange(false);
+    }
+
+    async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>){
+        setImageChange(true);
+        const file = e.target.files?.[0];
+        if (file) {
+            setImageChange(true);
+            setSelectedFile(file); 
+            setPreview(URL.createObjectURL(file));
         }
     }
 
@@ -393,11 +457,64 @@ export default  function Dashboard() {
             </div>
         }
 
+        {showProfile && 
+            <div className='fixed flex flex-col top-1/2 left-1/2 gap-2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-auto p-3 z-30 bg-white dark:shadow-none dark:bg-[#02060D] rounded border border-[#7AF8C1] dark:border-[#1E2C40]'>
+                <div className='w-full flex items-center justify-between'>
+                    <p className='geist-font text-[16px] font-medium text-[#16422E] dark:text-[#0076FC]'>Your profile</p>
+                    <div onClick={()=>{setShowProfile(false);setLnChange(false);setFnChange(false);setImageChange(false);}} className='cursor-pointer self-end'><CrossIcon/></div>
+                </div>
+                <div className={`w-full border border-[#16422E] dark:border-[#0076FC] `}></div>
+                <div className='w-full flex h-64 gap-3'>
+                    <div className='flex flex-col py-10'>
+                        <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" style={{ display: "none" }}/>
+                        {preview 
+                            ? 
+                            <img src={preview} alt="Selected" className="w-40 h-40 bg-black object-cover rounded border border-[#7AF8C1] dark:border-[#1E2C40]"/>
+                            :
+                            <img src={img} alt="" className='w-40 h-40 overflow-hidden object-cover content-center rounded border bg-black border-[#7AF8C1] dark:border-[#1E2C40]'/>
+                        }
+                        {!imgChange && <div onClick={() => fileInputRef.current?.click()} className="geist-font text-[16px] font-regular flex gap-2 items-center justify-center text-[#16422E] dark:text-white  rounded-full p-1  cursor-pointer">
+                            Change Image <EditIcon/>
+                        </div>}                    
+                    </div>
+                    <div className='flex-1 flex flex-col items-start gap-1 h-full py-10 relative'>
+                        <div className='w-full relative flex gap-2 items-center justify-start text-[#16422E] dark:text-white'>
+                            <p className='geist-font text-[16px] font-regular'>first name : </p>
+                            {!fnChange && <p className='geist-font text-[16px] font-medium'>{firstName}</p>}
+                            {!fnChange && <div onClick={()=>setFnChange(true)} className='cursor-pointer absolute right-10'><EditIcon/></div>}
+                            {fnChange && <input ref={fnRef} type="text" className="text-[#16422E] dark:text-[#FFFFFF]  px-1 w-[40%] border-0 border-b border-[#16422E] dark:border-white focus:outline-none focus:ring-0 focus:border-[#16422E] focus:dark:border-white bg-transparent"/>}
+                        </div>
+                        <div className='w-full relative flex gap-2 items-center justify-start text-[#16422E] dark:text-white'>
+                            <p className='geist-font text-[16px] font-regular'>last name : </p>
+                            {!lnChange && <p className='geist-font text-[16px] font-medium'>{lastName}</p>}
+                            {!lnChange && <div onClick={()=>setLnChange(true)} className='cursor-pointer absolute right-10'><EditIcon/></div>}
+                            {lnChange && <input ref={lnRef} type="text" className="text-[#16422E] dark:text-[#FFFFFF]  px-1 w-[40%] border-0 border-b border-[#16422E] dark:border-white focus:outline-none focus:ring-0 focus:border-[#16422E] focus:dark:border-white bg-transparent"/>}
+                        </div>
+                        <div className='flex gap-2 items-center justify-start text-[#16422E] dark:text-white'>
+                            <p className='geist-font text-[16px] font-regular'>email : </p>
+                            <p className='geist-font text-[16px] font-medium'>{email}</p>
+                        </div>
+                        <div className='flex gap-5 absolute bottom-0 self-end w-auto h-auto '>
+                            <div onClick={logout} className='items-center cursor-pointer border border-red-500 rounded px-3 py-1 gap-2  flex justify-start geist-font text-[14px] tracking-tight text-white bg-red-500 font-medium'>
+                                <LogoutIcon/>
+                                Log out
+                            </div>
+                            <div onClick={doneChanges} className='items-center cursor-pointer border border-[#16422E] dark:border-[#0076FC] rounded px-3 py-1 gap-2  flex justify-start geist-font text-[14px] tracking-tight text-white bg-[#16422E] dark:bg-[#0076FC] font-medium'>
+                                <DoneIcon/>
+                                Done
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
         <div className={`flex px-2 py-2 h-screen w-screen gap-2`}>
 
-            <div className={`flex flex-col w-[13%] h-full z-20 gap-2 ${(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack) ? 'pointer-events-none' : ''} `}>
+            <div className={`flex flex-col w-[13%] h-full z-20 gap-2 ${(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack || showProfile) ? 'pointer-events-none' : ''} `}>
                 
-                {(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
+                {(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack || showProfile) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
 
                 <div className='flex flex-col px-3 py-2 pb-5 items-center w-full h-2/3 bg-white border border-[#7AF8C1] dark:border-[#1E2C40] rounded  dark:bg-[#000000] dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C]'>
                     <div className={`w-full flex justify-start p-3 z-20 `}>
@@ -437,7 +554,7 @@ export default  function Dashboard() {
                     </div>
                 </div>
 
-                <div className='my-auto cursor-pointer hover:shadow-none hover:border-[#16422E] hover:dark:border-white w-full flex justify-evenly px-5 py-2 items-center border-2 rounded-[200px] bg-white border-[#7AF8C1] dark:border-[#1E2C40]  dark:bg-[#000000] dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C]'>
+                <div onClick={()=>setShowProfile(true)} className='my-auto cursor-pointer hover:shadow-none hover:border-[#16422E] hover:dark:border-white w-full flex justify-end gap-3 px-5 py-2 items-center border-2 rounded-[200px] bg-white border-[#7AF8C1] dark:border-[#1E2C40]  dark:bg-[#000000] dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C]'>
                     <p className='geist-font text-[16px] font-medium text-[#16422E] dark:text-white'>{name}</p>
                     <div className='w-9 h-9 bg-black rounded-full object-cover content-center border border-[#7AF8C1] dark:border-[#1E2C40]'>
                         <img src={img} alt="" className='w-full h-full rounded-full'/>
@@ -446,9 +563,9 @@ export default  function Dashboard() {
 
             </div>
 
-            <div className={`flex-1 h-full z-20 flex flex-col gap-2 ${(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack) ? 'pointer-events-none' : ''}`}>
+            <div className={`flex-1 h-full z-20 flex flex-col gap-2 ${(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack || showProfile) ? 'pointer-events-none' : ''}`}>
 
-                {(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
+                {(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack || showProfile) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
 
                 <div className='flex w-full px-3 py-2  border border-[#7AF8C1] dark:border-[#1E2C40] bg-white dark:bg-[#000000] rounded dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C]'>
                     <div className=" w-1/2 flex justify-start z-20 geist-font text-[20px]  text-[#16422E] dark:text-[#FFFFFF]">
@@ -555,16 +672,4 @@ export default  function Dashboard() {
     </div>
 } 
 
-
-// add a timer which will show the closest approaching scheduled call
-// add feedback support
-// render feedbacks on landing page
-// add image for profiles and where previous calls details are rendered
-// instead of setting, render image and name of the user
-// add change password and forgot password for users who logged in using email and password through   
-// add change profile image and change firstName and lastName
-// add other profiles options
-
-//---------------------------------------
-
-// then the work for main functionality will begin OH GOD BLESS ME
+// implement profile settings change name, password and profile image 
