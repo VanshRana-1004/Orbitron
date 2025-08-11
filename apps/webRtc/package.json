@@ -12,7 +12,6 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@repo/database": "workspace:*",
     "@prisma/client": "^6.7.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",

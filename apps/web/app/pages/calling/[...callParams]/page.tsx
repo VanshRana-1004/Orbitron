@@ -222,12 +222,6 @@ export default function Calling(){
                 setIsRecording(true);
                 startRecording();
             },5000);
-            async function setTime(){
-                await axios.post('/api/auth/recording',{
-                    callid : roomIdRef.current
-                })
-            }
-            setTime();
             if(shareScreenRef.current) startSharedScreenRecording();
         })
 
@@ -802,6 +796,12 @@ export default function Calling(){
                 console.log(response);
                 if(response){
                     alert('resources are ready recording will start in few seconds.')
+                    async function setTime(){
+                        await axios.post('/api/auth/recording',{
+                            callid : roomIdRef.current
+                        })
+                    }
+                    setTime();
                     setShowCount(true);
                     setCount(5);
                     setInterval(()=>setCount(count=>count-1),1000);

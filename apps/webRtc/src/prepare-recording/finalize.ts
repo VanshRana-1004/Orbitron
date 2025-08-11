@@ -314,7 +314,4 @@ async function generateFinalMergedVideo(roomId : string){
   // clips to cloudinary
   await uploadClips(roomId);
 
-  // delte temp files
-  await deleteHelpingClips(roomId);
-
 }

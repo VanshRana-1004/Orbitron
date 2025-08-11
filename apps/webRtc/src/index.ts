@@ -10,7 +10,7 @@ import { createWebRtcTransport} from './mediasoup/transport';
 import express from 'express';
 import multer from 'multer';
 import cors from 'cors';
-import { prismaClient } from "@repo/database/client"
+import axios from 'axios';
 
 const app=express();
 app.use(express.json());
@@ -23,6 +23,8 @@ app.use(cors({
 
 const PORT = 8080;
 const server = http.createServer(app);
+
+const FRONTEND_URL=process.env.FRONTEND_URL;
 
 const uploadsPath = path.join(process.cwd(), 'uploads');
 
@@ -233,21 +235,17 @@ io.on('connect', async (socket: Socket) => {
     return (items as any[]).filter(item => item.socketId !== socket.id);
   }
   
-  async function callEnded(roomId : string) {
-    const response=await prismaClient.call.findFirst({
-      where : {
-        callingId : roomId
-      }
-    })
-    if(response){
-      await prismaClient.call.update({
-        where : {
-          id : response.id
-        },
-        data : {
-          ended : true
+  async function notifyFrontendCallEnded(roomId: string) {
+    try {
+      await axios.post(`${FRONTEND_URL}/api/auth/call-ended`, 
+        { roomId }, 
+        {
+          headers: { 'Content-Type': 'application/json' }
         }
-      })
+      );
+      console.log(`Notified frontend that call ${roomId} ended`);
+    } catch (err) {
+      console.error('Failed to notify frontend:', err);
     }
   }
 
@@ -273,10 +271,10 @@ io.on('connect', async (socket: Socket) => {
       }
       if (rooms[roomId].peers.length === 0) {
         console.log('length of peer 0')
+        await notifyFrontendCallEnded(roomId);
         if (rooms[roomId] && rooms[roomId].isRecording ){ 
           rooms[roomId].isRecording = false;
           console.log('calling to merge layouts');
-          callEnded(roomId);
           setTimeout(()=>{queuePoll(roomId)},5000);
         } 
         delete rooms[roomId];

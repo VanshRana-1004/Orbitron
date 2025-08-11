@@ -15,7 +15,6 @@ import CrossIcon from 'app/components/icons/cross';
 import TimeSelector from 'app/components/time-selector/time';
 import DatePicker from 'app/components/date-selector/date';
 import HeartIcon from 'app/components/icons/heart';
-import DoneIcon from 'app/components/icons/done';
 import EditIcon from 'app/components/icons/edit';
 
 interface User{
@@ -123,6 +122,7 @@ export default  function Dashboard() {
     },[])
 
     useEffect(()=>{
+            if(!auth) return;
             async function getInfo(){
                 const res1 = await axios.get('/api/auth/get-scheduled-calls',{
                     params : {userId : Number(idRef.current)} 
@@ -311,7 +311,7 @@ export default  function Dashboard() {
             <div className={`w-full border border-[#16422E] dark:border-[#FFFFFF] `}></div>
             <div className='flex w-full gap-2 items-center justify-start'>
                 <p className='text-[#16422E] dark:text-white geist-font tracking-tight text-[16px]'>{showCreate?'Enter the name of the call : ':'Enter the call id : '}</p>
-                <input type="text" className="text-[#16422E] dark:text-[#FFFFFF]  px-1 w-[40%] border-0 border-b border-[#16422E] dark:border-white focus:outline-none focus:ring-0 focus:border-[#16422E] focus:dark:border-white bg-transparent"/>
+                <input ref={showCreate ? callNameRef : callIdRef} type="text" className="text-[#16422E] dark:text-[#FFFFFF]  px-1 w-[40%] border-0 border-b border-[#16422E] dark:border-white focus:outline-none focus:ring-0 focus:border-[#16422E] focus:dark:border-white bg-transparent"/>
             </div>
             <div className='flex w-full justify-end gap-3 items-center'>
                 <div onClick={()=>{setShowCreate(false), setShowJoin(false)}} className='cursor-pointer px-3 py-0.5 border rounded border-[#d1ffeb] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-[#0c1423] flex justify-center items-center geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>cancel</div>
@@ -495,15 +495,8 @@ export default  function Dashboard() {
                             <p className='geist-font text-[16px] font-medium'>{email}</p>
                         </div>
                         <div className='flex gap-5 absolute bottom-0 self-end w-auto h-auto '>
-                            <div onClick={logout} className='items-center cursor-pointer border border-red-500 rounded px-3 py-1 gap-2  flex justify-start geist-font text-[14px] tracking-tight text-white bg-red-500 font-medium'>
-                                <LogoutIcon/>
-                                Log out
-                            </div>
-                            <div onClick={doneChanges} className='items-center cursor-pointer border border-[#16422E] dark:border-[#0076FC] rounded px-3 py-1 gap-2  flex justify-start geist-font text-[14px] tracking-tight text-white bg-[#16422E] dark:bg-[#0076FC] font-medium'>
-                                <DoneIcon/>
-                                Done
-                            </div>
-
+                            <div onClick={()=>{setShowProfile(false)}} className='cursor-pointer px-3 py-0.5 border rounded border-[#d1ffeb] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-[#0c1423] flex justify-center items-center geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium '>Cancel</div>
+                            <div className='cursor-pointer px-3 py-0.5 border rounded border-[#16422E] dark:border-[#1E2C40] bg-[#16422E] dark:bg-[#0076FC] flex justify-center items-center geist-font text-[14px] tracking-tight text-white font-medium' onClick={doneChanges}>Done</div>
                         </div>
                     </div>
                 </div>

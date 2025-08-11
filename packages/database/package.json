@@ -9,8 +9,10 @@
   "exports": {
     "./client": {
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
   },
   "keywords": [],
   "author": "",
