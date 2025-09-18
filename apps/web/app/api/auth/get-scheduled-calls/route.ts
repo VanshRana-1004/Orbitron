@@ -16,6 +16,7 @@ export async function GET(req : NextRequest){
     return NextResponse.json({message : 'scheduled calls retrieved successfully',res : res}, {status : 200});
   }
   catch(e){
+    console.log(e);
     return NextResponse.json({message : 'error while retrieving scheduled calls'}, {status : 500});
   }
 }

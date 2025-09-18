@@ -112,7 +112,7 @@ export const authOptions: NextAuthOptions = {
 
       } catch (err) {
         console.error("DB error in signIn callback:", err);
-        return false;
+        throw new Error("DatabaseUnavailable");
       }
     }
 

@@ -11,9 +11,9 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@repo/database": "workspace:*",
     "@daily-co/daily-js": "^0.79.0",
     "@prisma/client": "^6.7.0",
+    "@repo/database": "workspace:*",
     "@repo/ui": "workspace:*",
     "@types/bcrypt": "^5.0.2",
     "@types/cookie": "^1.0.0",
@@ -48,7 +48,8 @@
     "socket.io-client": "^4.8.1",
     "tailwindcss": "3.4.3",
     "time-keeper": "^2.0.0",
-    "zod": "^3.24.3"
+    "zod": "^3.24.3",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@repo/database": "workspace:*",

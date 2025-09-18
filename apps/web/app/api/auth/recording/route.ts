@@ -2,12 +2,12 @@ import { prismaClient } from "@repo/database/client"
 import { NextResponse } from "next/server";
 
 export async function POST(req : Request){
-    const {callid}=await req.json();
-    console.log(callid);
+    const {callId}=await req.json();
+    console.log(callId);
     try{
         const response=await prismaClient.call.findFirst({
             where : {
-                callingId : callid
+                callingId : callId
             }
         })
         if(response){

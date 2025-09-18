@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,39 +8,41 @@ datasource db {
 }
 
 model User {
-  id          Int            @id @default(autoincrement())
-  firstName   String
-  lastName    String
-  email       String         @unique
-  password    String?
-  joinedAt    DateTime       @default(now())
-  profileImage String?
-  oauth       Boolean       
-  calls       Call[]         @relation("UserToCall")
+  id            Int            @id @default(autoincrement())
+  firstName     String
+  lastName      String
+  email         String         @unique
+  password      String?
+  joinedAt      DateTime       @default(now())
+  profileImage  String?
+  oauth         Boolean
   callUserTimes CallUserTime[]
+  calls         Call[]         @relation("UserToCall")
+
   @@map("user")
 }
 
 model Call {
   id            Int            @id @default(autoincrement())
-  slug          String         
+  slug          String
   callingId     String
-  users         User[]         @relation("UserToCall")
-  recorded      Boolean         
   ended         Boolean
+  recorded      Boolean
   startTime     String
   date          String
   callUserTimes CallUserTime[]
+  users         User[]         @relation("UserToCall")
+
   @@map("call")
 }
 
 model CallUserTime {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  callId    Int
-  joinedAt  DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-  call      Call     @relation(fields: [callId], references: [id])
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  callId   Int
+  joinedAt DateTime @default(now())
+  call     Call     @relation(fields: [callId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, callId])
   @@index([userId])
@@ -54,43 +50,41 @@ model CallUserTime {
   @@map("callusertime")
 }
 
-model ScheduledCalls{
-  id        Int      @id @default(autoincrement())  
-  userId    Int
-  slug      String   
-  date      String
-  time      String
+model ScheduledCalls {
+  id     Int    @id @default(autoincrement())
+  userId Int
+  slug   String
+  date   String
+  time   String
 }
 
-model RecordedCalls{
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  slug      String
-  callId    String
-  date      String
-  time      String
-  duration  String
-
-  clips     Clip[]
+model RecordedCalls {
+  id       Int    @id @default(autoincrement())
+  userId   Int
+  slug     String
+  callId   String
+  date     String
+  time     String
+  duration String
+  clips    Clip[]
 }
 
 model Clip {
-  id            Int            @id @default(autoincrement())
-  callId        Int            
-  clipNumber    Int            
-  cloudinaryUrl String         
-  publicId      String         
-  
-  recordedCall  RecordedCalls  @relation(fields: [callId], references: [id])
+  id            Int           @id @default(autoincrement())
+  callId        Int
+  clipNumber    Int
+  cloudinaryUrl String
+  publicId      String
+  recordedCall  RecordedCalls @relation(fields: [callId], references: [id])
 
-  @@index([callId, clipNumber]) 
+  @@index([callId, clipNumber])
 }
 
 model Feedback {
-  id            Int            @id @default(autoincrement())
-  userId        Int 
-  name          String
-  email         String
-  img           String
-  comment       String
+  id      Int    @id @default(autoincrement())
+  userId  Int
+  email   String
+  img     String
+  comment String
+  name    String
 }

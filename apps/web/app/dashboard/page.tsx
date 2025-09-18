@@ -16,6 +16,10 @@ import TimeSelector from 'app/components/time-selector/time';
 import DatePicker from 'app/components/date-selector/date';
 import HeartIcon from 'app/components/icons/heart';
 import EditIcon from 'app/components/icons/edit';
+const SERVER_URL = 'http://localhost:8080';
+import { useSchedulesCallStore } from 'app/store/scheduled-calls';
+import { useCallStore } from 'app/store/call-history';
+import { useUserInfo } from 'app/store/user-info';
 
 interface User{
     firstName : string,
@@ -51,6 +55,9 @@ function isFutureDateTime(date?: Date, time?: { hours: number; minutes: number; 
 
 export default  function Dashboard() {
     const router=useRouter();
+    const {info,setInfo}=useUserInfo();
+    const {previousCalls,setPreviousCalls}=useCallStore();
+    const { scheduledCalls, setScheduledCallLogs, addScheduledCall }=useSchedulesCallStore();
     const callNameRef=useRef<HTMLInputElement>(null);
     const callIdRef=useRef<HTMLInputElement>(null);
     const [showCreate,setShowCreate]=useState(false);
@@ -64,8 +71,6 @@ export default  function Dashboard() {
     const [id,setId]=useState<string>('');
     const scheduledCallNameRef=useRef<HTMLInputElement>(null);
     const idRef=useRef<string>('');
-    const [scheduledCalls, setScheduledCalls] = useState<{slug: string; date: string; time: string }[]>([]);
-    const [previousCalls, setPreviousCalls] = useState<{slug: string, callingId: string, peers: string,date : string,time : string,recorded : boolean,users : User[]}[]>([]);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [selectedTime, setSelectedTime] = useState<{ hours: number; minutes: number; ampm: 'AM' | 'PM' }>(getCurrentTime());
     const [show,setShow]=useState<boolean>(false); 
@@ -113,6 +118,7 @@ export default  function Dashboard() {
                 idRef.current=res1.data.user.id;
                 console.log(res1.data.user.id);
                 setAuth(true);
+                setInfo({firstName,lastName,email,img,id});
             }catch(e){
                 console.error("Error fetching user info:", e);
                 redirect('/login');
@@ -136,7 +142,8 @@ export default  function Dashboard() {
                     })
                     .map(({ slug, date, time } : {slug: string; date: string; time: string }) => ({ slug, date, time })); 
 
-                setScheduledCalls(sorted1);
+                setScheduledCallLogs(sorted1);
+
 
                 const res2=await axios.get('/api/auth/get-calls',{
                     params : {userId : Number(idRef.current)} 
@@ -160,20 +167,27 @@ export default  function Dashboard() {
                 setPreviousCalls(callData);
             }
 
-            // const res3 = await axios.get('/api/auth/get-recorded-calls');
             getInfo();
     },[auth])
 
-    async function createNewCall(){
+    async function createNewCall(){ 
         await axios.post('/api/auth/create-call', {
             callSlug : callNameRef.current?.value,
-        }).then((response)=>{
+        }).then(async (response)=>{
             console.log(response.data);
             const callId : string=response.data.callingId;
             const slug : string=response.data.slug;
-            localStorage.setItem('userName',response.data.userName);
             if(callId==undefined) console.log('Error in creating a call');
-            else router.push(`/pages/calling/${slug}/${callId}`);
+            else{
+                const res = await axios.post(`${SERVER_URL}/create-call`, {
+                    roomId: callId,
+                    userId: response.data.userId,
+                });
+                const data = await res.data;
+                console.log(data);
+                alert('call created successfully')
+                router.push(`/call/${slug}/${callId}`);
+            } 
         }).catch((e)=>{
             console.log(e.status + ' ' + e.message);
         }) 
@@ -182,13 +196,37 @@ export default  function Dashboard() {
     async function joinCall() {
         await axios.post('/api/auth/join-call', {
             callId : callIdRef.current?.value,
-        }).then((response)=>{
+        }).then(async (response)=>{
             console.log(response.data);
             const callId : string=response.data.callingId;
             const slug : string=response.data.slug; 
-            localStorage.setItem('userName',response.data.userName);
             if(callId==undefined) console.log('Error in creating a call');
-            else router.push(`/pages/calling/${slug}/${callId}`);
+            else{
+                await fetch("http://localhost:8080/join-call", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ roomId : callId}),
+                }).then(async (res)=>{
+                    if (res.status === 200) {
+                        console.log(res);
+                        alert("Call joined successfully");
+                        router.push(`/call/${slug}/${callId}`);
+                    } else if (res.status === 403) {
+                        alert("Call already ended");
+                    } else if (res.status === 404) {
+                        alert("Call not found");
+                    } else if (res.status === 400) {
+                        alert("Peer limit in room already reached, you can't join");
+                    } else {
+                        alert("Something went wrong");
+                    }
+                }).catch((err)=>{
+                    console.error("Network or server error:", err);
+                    alert("Unable to connect to server");
+                })
+            } 
         }).catch((e)=>{
             console.log(e.status + ' ' + e.message);
         }) 
@@ -220,7 +258,7 @@ export default  function Dashboard() {
                 })
                 console.log('Call successfully scheduled');
                 setShowCalendar(false);
-                setScheduledCalls(prev=>[{slug, date, time},...prev])
+                addScheduledCall({slug,date,time});
             }catch(e){
                 alert('error in scheduling call.')
             }
@@ -395,39 +433,39 @@ export default  function Dashboard() {
                 
                 <div className={`w-full border border-[#16422E] dark:border-[#FFFFFF] `}></div>
 
-                <div className="w-full h-auto flex flex-col gap-4 p-4 rounded-xl bg-green-50 dark:bg-[#02060D] text-[#16422E] dark:text-white border border-[#7AF8C1] dark:border-[#1E2C40]">
+                <div className="w-full h-auto flex flex-col gap-2 p-4 rounded-xl bg-green-50 dark:bg-[#02060D] text-[#16422E] dark:text-white border border-[#7AF8C1] dark:border-[#1E2C40]">
                     <div className="flex gap-1 items-center ">
-                        <p className="geist-font text-[16px] font-normal">Call Name :</p>
-                        <p className="geist-font text-[16px] font-medium">{previousCalls[callDetail]?.slug}</p>
+                        <p className="geist-font text-[14px] font-light">Call Name :</p>
+                        <p className="geist-font text-[14px] font-regular">{previousCalls[callDetail]?.slug}</p>
                     </div>
 
                     <div className="flex gap-1 items-center ">
-                        <p className="geist-font text-[16px] font-normal">Call ID :</p>
-                        <p className="geist-font text-[16px] font-medium">{previousCalls[callDetail]?.callingId}</p>
+                        <p className="geist-font text-[14px] font-light">Call ID :</p>
+                        <p className="geist-font text-[14px] font-regular">{previousCalls[callDetail]?.callingId}</p>
                     </div>
 
                     <div className="flex gap-1 items-center ">
-                        <p className="geist-font text-[16px] font-normal">Date :</p>
-                        <p className="geist-font text-[16px] font-medium">{previousCalls[callDetail]?.date}</p>
+                        <p className="geist-font text-[14px] font-light">Date :</p>
+                        <p className="geist-font text-[14px] font-regular">{previousCalls[callDetail]?.date}</p>
                     </div>
 
                     <div className="flex gap-1 items-center ">
-                        <p className="geist-font text-[16px] font-normal">Time :</p>
-                        <p className="geist-font text-[16px] font-medium">{previousCalls[callDetail]?.time}</p>
+                        <p className="geist-font text-[14px] font-light">Time :</p>
+                        <p className="geist-font text-[14px] font-regular">{previousCalls[callDetail]?.time}</p>
                     </div>
                     
                     <div className="flex gap-1 items-center ">
-                        <p className="geist-font text-[16px] font-normal">Recorded :</p>
-                        <p className="geist-font text-[16px] font-medium">{previousCalls[callDetail]?.recorded ? 'yes' : 'no'}</p>
+                        <p className="geist-font text-[14px] font-light">Recorded :</p>
+                        <p className="geist-font text-[14px] font-regular">{previousCalls[callDetail]?.recorded ? 'yes' : 'no'}</p>
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        <p className="geist-font text-[16px] font-normal">Peers who joined the call:</p>
+                        <p className="geist-font text-[14px] font-light">Peers who joined the call:</p>
                         <div className="flex flex-col gap-3 pl-2">
                             {previousCalls[callDetail]?.users?.map((user, ind) => (
                                 <div key={ind} className="bg-white dark:bg-[#0B121C] p-3 rounded-md shadow-sm border border-[#CDFCE7] dark:border-[#1E2C40]">
-                                    <p className="geist-font text-[14px] font-medium"><span className="geist-font text-[14px] font-normal">Name:</span> {user.firstName} {user.lastName}</p>
-                                    <p className="geist-font text-[14px] font-medium"><span className="geist-font text-[14px] font-normal">Email:</span> {user.email}</p>
+                                    <p className="geist-font text-[14px] font-regular"><span className="geist-font text-[14px] font-light">Name:</span> {user.firstName} {user.lastName}</p>
+                                    <p className="geist-font text-[14px] font-regular"><span className="geist-font text-[14px] font-light">Email:</span> {user.email}</p>
                                 </div>
                             ))}
                         </div>
@@ -473,26 +511,26 @@ export default  function Dashboard() {
                             :
                             <img src={img} alt="" className='w-40 h-40 overflow-hidden object-cover content-center rounded border bg-black border-[#7AF8C1] dark:border-[#1E2C40]'/>
                         }
-                        {!imgChange && <div onClick={() => fileInputRef.current?.click()} className="geist-font text-[16px] font-regular flex gap-2 items-center justify-center text-[#16422E] dark:text-white  rounded-full p-1  cursor-pointer">
+                        {!imgChange && <div onClick={() => fileInputRef.current?.click()} className="geist-font text-[14px] font-regular flex gap-2 items-center justify-center text-[#16422E] dark:text-white  rounded-full p-1  cursor-pointer">
                             Change Image <EditIcon/>
                         </div>}                    
                     </div>
                     <div className='flex-1 flex flex-col items-start gap-1 h-full py-10 relative'>
                         <div className='w-full relative flex gap-2 items-center justify-start text-[#16422E] dark:text-white'>
-                            <p className='geist-font text-[16px] font-regular'>first name : </p>
-                            {!fnChange && <p className='geist-font text-[16px] font-medium'>{firstName}</p>}
+                            <p className='geist-font text-[16px] font-light'>first name : </p>
+                            {!fnChange && <p className='geist-font text-[16px] font-regular'>{firstName}</p>}
                             {!fnChange && <div onClick={()=>setFnChange(true)} className='cursor-pointer absolute right-10'><EditIcon/></div>}
                             {fnChange && <input ref={fnRef} type="text" className="text-[#16422E] dark:text-[#FFFFFF]  px-1 w-[40%] border-0 border-b border-[#16422E] dark:border-white focus:outline-none focus:ring-0 focus:border-[#16422E] focus:dark:border-white bg-transparent"/>}
                         </div>
                         <div className='w-full relative flex gap-2 items-center justify-start text-[#16422E] dark:text-white'>
-                            <p className='geist-font text-[16px] font-regular'>last name : </p>
-                            {!lnChange && <p className='geist-font text-[16px] font-medium'>{lastName}</p>}
+                            <p className='geist-font text-[16px] font-light'>last name : </p>
+                            {!lnChange && <p className='geist-font text-[16px] font-regular'>{lastName}</p>}
                             {!lnChange && <div onClick={()=>setLnChange(true)} className='cursor-pointer absolute right-10'><EditIcon/></div>}
                             {lnChange && <input ref={lnRef} type="text" className="text-[#16422E] dark:text-[#FFFFFF]  px-1 w-[40%] border-0 border-b border-[#16422E] dark:border-white focus:outline-none focus:ring-0 focus:border-[#16422E] focus:dark:border-white bg-transparent"/>}
                         </div>
                         <div className='flex gap-2 items-center justify-start text-[#16422E] dark:text-white'>
-                            <p className='geist-font text-[16px] font-regular'>email : </p>
-                            <p className='geist-font text-[16px] font-medium'>{email}</p>
+                            <p className='geist-font text-[16px] font-light'>email : </p>
+                            <p className='geist-font text-[16px] font-regular'>{email}</p>
                         </div>
                         <div className='flex gap-5 absolute bottom-0 self-end w-auto h-auto '>
                             <div onClick={()=>{setShowProfile(false)}} className='cursor-pointer px-3 py-0.5 border rounded border-[#d1ffeb] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-[#0c1423] flex justify-center items-center geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium '>Cancel</div>
@@ -664,5 +702,3 @@ export default  function Dashboard() {
        
     </div>
 } 
-
-// implement profile settings change name, password and profile image 

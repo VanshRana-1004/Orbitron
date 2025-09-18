@@ -12,6 +12,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "bullmq": "^5.58.5",
+    "node-gyp": "^11.4.2",
+    "redis": "^5.8.2",
+    "typescript": "^5.9.2",
     "@prisma/client": "^6.7.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",

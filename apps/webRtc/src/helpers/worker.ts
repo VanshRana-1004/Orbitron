@@ -2,7 +2,7 @@ import * as mediasoup from 'mediasoup';
 export async function CreateWorker(){
     const worker=await mediasoup.createWorker({
         rtcMinPort:40000,
-        rtcMaxPort:41999 
+        rtcMaxPort:41999
     }) 
     console.log(`Worker pid : ${worker.pid}`);
     worker.on('died',error=>{

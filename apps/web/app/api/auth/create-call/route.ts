@@ -99,7 +99,8 @@ export async function POST(req: NextRequest) {
                     message: 'call created',
                     slug: callSlug,
                     callingId:callingId,
-                    userName: userName 
+                    userName: userName,
+                    userId
                 },{status : 200});
                 
             } 

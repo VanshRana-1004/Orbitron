@@ -12,8 +12,6 @@ import CloudIcon from "./components/icons/cloud";
 import LockIcon from "./components/icons/lock";
 import LayoutIcon from "./components/icons/layout";
 import ComputerIcon from "./components/icons/computer";
-import { useEffect, useState } from "react";
-import axios from "axios";
 
 export default function Home() {
   const router = useRouter();
@@ -28,20 +26,7 @@ export default function Home() {
         alert("Something went wrong.");
     }
   };
-  const [fb,setFb]=useState<number>(1);
 
-  useEffect(()=>{
-    async function getFeedbacks(){
-      const res=await axios.get('/api/auth/get-feedback',{
-        params : {
-          page : fb-1 
-        }
-      });
-      console.log(res.data);
-    }
-    // if(fb%4===1) getFeedbacks();
-  },[fb]);
-  
   return <div className="relative min-h-screen w-full overflow-y-scroll no-scrollbar">
   
     <div className="top-0 left-0 absolute w-full h-full z-10 pointer-events-none

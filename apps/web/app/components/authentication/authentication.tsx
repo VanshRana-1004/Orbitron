@@ -32,11 +32,16 @@ export function Authentication() {
         const searchParams = new URLSearchParams(search);
         const errorParam = searchParams.get('error');
 
-        if (errorParam === 'AccessDenied' || errorParam === 'OAuthAccountNotLinked') {
-            setError('User ID already logged in with password.');
+        if (errorParam === 'AccessDenied') {
+            setError('Sign-in blocked: account conflict (already registered with password).');
+        } else if (errorParam === 'OAuthAccountNotLinked') {
+            setError('This Google account is not linked to your password account.');
+        } else if (errorParam === 'DatabaseUnavailable') {
+            setError('Service unavailable: please try again later.');
         } else if (errorParam) {
             setError(decodeURIComponent(errorParam));
         }
+
     }, []);
 
     const [isRedirecting, setIsRedirecting] = useState(false);

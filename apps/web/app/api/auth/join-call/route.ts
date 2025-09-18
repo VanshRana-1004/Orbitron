@@ -78,7 +78,8 @@ export async function POST(req: NextRequest) {
                         message: 'call joined',
                         slug: callSlug,
                         callingId:callId,
-                        userName:userName 
+                        userName:userName,
+                        userId 
                     },{status : 200});
                 }
             }
