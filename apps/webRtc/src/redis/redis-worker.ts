@@ -2,6 +2,7 @@ import { Worker, Job } from "bullmq";
 import { timeline } from "../layout-helpers/timeline"; 
 import { finalUploads } from "../helpers/upload";
 import { cleanupFiles } from "../helpers/delete-temp";
+import { dashboardNamespace, roomIdUserIdMap } from "..";
 
 export function createRedisWorker(){
   const worker = new Worker(
@@ -28,7 +29,20 @@ export function createRedisWorker(){
     }
   );
 
-  worker.on("completed", (job) => console.log(`Job ${job.id} completed`));
+  worker.on("completed", async (job) => {
+    console.log(`Job ${job.id} completed`);
+    try{
+      const sckts=roomIdUserIdMap[job.data.roomId];
+      if(sckts){
+        console.log(Array.from(sckts).length);
+        for(const sckt of Array.from(sckts)){
+          sckt.emit('post-process-done',{roomId : job.data.roomId})
+        }  
+      }
+    }catch(e){
+      console.log(e);
+    }
+  });
   worker.on("failed", (job, err) => console.error(`Job ${job?.id} failed:`, err));
   worker.on("error", (err) => console.error("Worker error:", err));
 

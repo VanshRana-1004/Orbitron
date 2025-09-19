@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
+import { prismaClient } from "@repo/database/client";
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUD_NAME!,
@@ -7,38 +8,94 @@ cloudinary.config({
 });
 
 async function getClipsByUserId(userId: string) {
-  const result = await cloudinary.search
-    .expression(`folder:recordings AND context.userId=${userId}`)
-    .sort_by('created_at', 'desc')
-    .max_results(100)
-    .execute();
-
-  const parsedResults = result.resources.map((clip: any) => {
-    const context = clip.context?.custom || {};
-
-    return {
-      url: clip.secure_url,
-      timestamp: context.timestamp || '',
-      callName: context.callName || '',
-      roomId: context.roomId || '',
-      userId: context.userId || '',
-      createdAt: clip.created_at,
-      public_id: clip.public_id,
-    };
+  const userWithCalls = await prismaClient.user.findUnique({
+    where: { id: Number(userId) },
+    include: {
+      calls: true
+    },
   });
+  console.log(userWithCalls)
 
-  return parsedResults;
+  if (!userWithCalls) return [];
+
+  const finalResult: {
+    roomId: number;
+    recorded: boolean;
+    clips: {
+      url: string;
+      roomId: string;
+      clipNum: string;
+      public_id: string;
+    }[];
+  }[] = [];
+
+  for (const call of userWithCalls.calls) {
+    let clips: {
+      url: string;
+      roomId: string;
+      clipNum: string;
+      public_id: string;
+    }[] = [];
+
+    if (call.recorded) {
+      console.log(call.callingId);
+      const result = await cloudinary.search
+        .expression(`folder:recordings AND context.roomId=${call.callingId}`)
+        .sort_by('created_at', 'asc')
+        .max_results(100)
+        .execute();
+
+      interface ClipResource {
+        secure_url: string;
+        public_id: string;
+        context?: {
+          custom?: {
+            roomId?: string | number;
+            clipNum?: string | number;
+            [key: string]: unknown;
+          };
+          [key: string]: unknown;
+        };
+        [key: string]: unknown;
+      }
+
+      interface Clip {
+        url: string;
+        roomId: string;
+        clipNum: string;
+        public_id: string;
+      }
+
+      clips = (result.resources as ClipResource[]).map((clip: ClipResource): Clip => {
+        const context = clip.context?.custom || {};
+        return {
+          url: clip.secure_url,
+          roomId: String(context.roomId),
+          clipNum: String(context.clipNum),
+          public_id: String(clip.public_id),
+        };
+      });
+    }
+
+    finalResult.push({
+      roomId: call.id,
+      recorded: call.recorded,
+      clips,
+    });
+  }
+
+  return finalResult;
 }
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
-  console.log("Fetching clips for userId:", userId);
+  const userId = searchParams.get('userId');
+  console.log('Fetching clips for userId:', userId);
 
   if (!userId) {
-    return Response.json({ error: "Missing userId" }, { status: 400 });
+    return Response.json({ error: 'Missing userId' }, { status: 400 });
   }
 
-  const clips = await getClipsByUserId(userId); 
+  const clips = await getClipsByUserId(userId);
   return Response.json(clips);
 }

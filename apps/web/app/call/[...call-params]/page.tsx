@@ -6,7 +6,7 @@ import { Device } from 'mediasoup-client';
 import axios from "axios";
 import { AppData, Producer, RtpCapabilities, RtpParameters, Transport } from 'mediasoup-client/types';
 import { useUserInfo } from "app/store/user-info";
-const SERVER_URL = 'http://localhost:8080';
+const SERVER_URL = 'http://localhost:8080/call';
 
 export default function Call() {  const localStreamRef=useRef<MediaStream>(null);
   const {info,setInfo}=useUserInfo();
@@ -626,14 +626,7 @@ export default function Call() {  const localStreamRef=useRef<MediaStream>(null)
   
   async function handleRecording(){
     if(isRecording) socketRef.current.emit('recording',{roomId : callIdRef.current, record : false});
-    else{
-      socketRef.current.emit('recording',{roomId : callIdRef.current, record : true});
-      await axios.post('/api/auth/recording', {
-        callId : callIdRef.current
-      }).then((res)=>{
-        console.log('set to db as well');
-      })
-    } 
+    else socketRef.current.emit('recording',{roomId : callIdRef.current, record : true});
   }  
   
   useEffect(() => {

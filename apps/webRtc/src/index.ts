@@ -30,10 +30,11 @@ export const roomMap : Record<string,Room>={}
 const peerMap : Record<string,Peer>={}
 const recordingMap : Record<string,boolean>={}
 export const rtpPool=new PortPool();
+export const roomIdUserIdMap : Record<string,Set<Socket>>={} 
 initRedis();
 createRedisWorker();
 
-const io = new SocketIOServer(server, {
+export const io = new SocketIOServer(server, {
   cors: {
     origin: '*',
   }
@@ -124,7 +125,20 @@ async function cleanupPeer(socketId: string, roomId: string) {
   }
 }
 
-io.on('connect', async (socket: Socket) => {
+const callNamespace = io.of('/call');
+export const dashboardNamespace = io.of('/dashboard');
+
+dashboardNamespace.on('connect',async (socket : Socket)=>{
+  const userId = Number(socket.handshake.query.userId);
+  console.log(`persistant connection for socketId : ${socket.id}`);
+
+  socket.on('joined',({roomId} : {roomId : string})=>{
+    console.log(`adding ${socket.id} to ${roomId}`);
+    roomIdUserIdMap[roomId]?.add(socket);
+  })
+})
+
+callNamespace.on('connect', async (socket: Socket) => {
 
     socket.on('join-room',async ({roomId,name,userId},callback)=>{
       const room=roomMap[roomId];
@@ -419,7 +433,7 @@ server.listen(PORT, () => {
 });
 
 app.post('/create-call',async (req,res)=>{
-    const {roomId , userId} : {roomId : string, userId : string}=req.body;
+    const {roomId , userId} : {roomId : string, userId : string }=req.body;
     const worker=await workerPromise;
     const router = await worker.createRouter({ mediaCodecs });
     if(router) console.log('router created successfully.')
@@ -427,6 +441,7 @@ app.post('/create-call',async (req,res)=>{
         const room : Room= new Room(roomId,router, userId);
         roomMap[roomId]=room;
         recordingMap[roomId]=false;
+        roomIdUserIdMap[roomId]=new Set();
         room.router=router;
         console.log('router set successfully')
         res.status(200).json({ message : 'room created successfully' });

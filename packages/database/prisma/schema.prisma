@@ -27,7 +27,7 @@ model Call {
   slug          String
   callingId     String
   ended         Boolean
-  recorded      Boolean
+  recorded      Boolean           
   startTime     String
   date          String
   callUserTimes CallUserTime[]

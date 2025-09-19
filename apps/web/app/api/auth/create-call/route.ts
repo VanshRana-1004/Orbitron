@@ -1,8 +1,8 @@
 import { NextResponse,NextRequest } from "next/server";
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { prismaClient } from "@repo/database/client";
 import { randomUUID } from "crypto";
 import { getToken } from "next-auth/jwt";
+import {prismaClient} from '@repo/database/client';
 
 const jwt_secret=process.env.JWT_SECRET; 
 const nextauth_secret = process.env.NEXTAUTH_SECRET!;
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
                 date : formattedDate,
                 startTime : formattedTime,
                 recorded : false,
-                ended : false
+                ended : false,
             }
         })
         if(response1){

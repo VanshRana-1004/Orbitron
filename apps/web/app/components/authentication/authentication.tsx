@@ -6,9 +6,10 @@ import { signIn } from 'next-auth/react';
 import OpenEye  from "../icons/eye";
 import  CloseEye from "../icons/closeeye";
 import { ThemeToggle } from "../theme-toggle/theme";
+import { useSocketStore } from 'app/store/socket-connection';
+
 
 export function Authentication() {    
-    
     const [sign, setSign] = useState<boolean>(false);
     const emailRef=useRef<HTMLInputElement>(null);
     const passwordRef=useRef<HTMLInputElement>(null);
@@ -22,8 +23,10 @@ export function Authentication() {
     const [lastNameError,setLastNameError]=useState<string | null>(null);
     const [error,setError]=useState<string|null>(null);
     const [type,setType]=useState<string>("password");
+    const {socket,initSocket}=useSocketStore();
 
     useEffect(() => {
+        initSocket();
         const { pathname, search } = window.location;
         const segments = pathname.split('/');
         if(segments.includes('login')) setSign(true);
@@ -64,8 +67,9 @@ export function Authentication() {
                 email: email,
                 password: password
             }, { withCredentials: true })
-            .then((response) => {
+            .then(async (response) => {
                 console.log(response.data);
+                console.log('persistent socket connection after login')
                 router.push('/dashboard');
             })
             .catch((error) => {
@@ -95,8 +99,9 @@ export function Authentication() {
                 lastName: lastName,
                 email: email,
                 password : password
-            }, { withCredentials: true }).then((response)=>{
+            }, { withCredentials: true }).then(async (response)=>{
                 console.log(response.data);
+                console.log('persistent socket connection after signup')
                 router.push('/dashboard');
             }).catch((error)=>{
                 if(error.status==400){

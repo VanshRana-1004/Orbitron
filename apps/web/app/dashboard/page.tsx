@@ -16,10 +16,13 @@ import TimeSelector from 'app/components/time-selector/time';
 import DatePicker from 'app/components/date-selector/date';
 import HeartIcon from 'app/components/icons/heart';
 import EditIcon from 'app/components/icons/edit';
-const SERVER_URL = 'http://localhost:8080';
+import { io } from 'socket.io-client';
 import { useSchedulesCallStore } from 'app/store/scheduled-calls';
 import { useCallStore } from 'app/store/call-history';
 import { useUserInfo } from 'app/store/user-info';
+import { useRecordingStore } from 'app/store/recorded-calls';
+import { useSocketStore } from 'app/store/socket-connection';
+const SERVER_URL = 'http://localhost:8080'; 
 
 interface User{
     firstName : string,
@@ -27,6 +30,18 @@ interface User{
     email : string,
     img : string
 }
+
+interface Clips {
+  roomId: number;
+  recorded: boolean;
+  processing: boolean;
+  clips: {
+    url: string;
+    roomId: string;
+    clipNum: string;
+    public_id: string;
+  }[];
+};
 
 function getCurrentTime(): { hours: number; minutes: number; ampm: 'AM' | 'PM' } {
   const now = new Date();
@@ -56,6 +71,8 @@ function isFutureDateTime(date?: Date, time?: { hours: number; minutes: number; 
 export default  function Dashboard() {
     const router=useRouter();
     const {info,setInfo}=useUserInfo();
+    const {socket,initSocket}=useSocketStore();
+    const {recordings,setRecordings,updateRecording}=useRecordingStore();
     const {previousCalls,setPreviousCalls}=useCallStore();
     const { scheduledCalls, setScheduledCallLogs, addScheduledCall }=useSchedulesCallStore();
     const callNameRef=useRef<HTMLInputElement>(null);
@@ -88,7 +105,6 @@ export default  function Dashboard() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [selectedFile,setSelectedFile]=useState<File | null>(null);
 
-
     const handleTimeChange = (time: { hours: number; minutes: number; ampm: 'AM' | 'PM' }) => {
         setSelectedTime(time);
     };
@@ -101,9 +117,10 @@ export default  function Dashboard() {
         const paddedHours = time.hours.toString().padStart(2, '0');
         const paddedMinutes = time.minutes.toString().padStart(2, '0');
         return `${paddedHours}:${paddedMinutes} ${time.ampm}`;
-    };
+    }; 
 
     useEffect(()=>{
+        initSocket();
         async function getInfo(){
             try{
                 const res1=await axios.get('/api/auth/me');
@@ -165,10 +182,33 @@ export default  function Dashboard() {
                     callData.push({slug,callingId,peers,date,time,recorded,users})
                 }
                 setPreviousCalls(callData);
+
+                const res3 : Clips[]=await axios.get('/api/auth/get-clips',{
+                    params : {userId : Number(idRef.current)}
+                })
+                console.log(res3);
+                setRecordings(res3);
+
             }
 
             getInfo();
     },[auth])
+
+    useEffect(()=>{
+        if(!socket) return;
+        const handler = async ({ roomId }: { roomId: string }) => {
+            console.log('now you can request to fetch clips for ', roomId);
+            const res: Clips = await axios.get('/api/auth/get-room-clips',{
+                params : {roomId}
+            });
+            console.log(res);
+            updateRecording(Number(roomId),res);
+        }
+        socket.on('post-process-done', handler);
+        return () => {
+            socket.off('post-process-done', handler);
+        } 
+    },[socket])
 
     async function createNewCall(){ 
         await axios.post('/api/auth/create-call', {
@@ -184,6 +224,11 @@ export default  function Dashboard() {
                     userId: response.data.userId,
                 });
                 const data = await res.data;
+                if(socket){
+                    console.log('socket present')
+                    socket?.emit('joined',{roomId : callId})
+                } 
+                else console.log('not present');
                 console.log(data);
                 alert('call created successfully')
                 router.push(`/call/${slug}/${callId}`);
@@ -211,6 +256,10 @@ export default  function Dashboard() {
                 }).then(async (res)=>{
                     if (res.status === 200) {
                         console.log(res);
+                        if(socket){
+                            console.log('socket present')
+                            socket?.emit('joined',{roomId : callId})
+                        } 
                         alert("Call joined successfully");
                         router.push(`/call/${slug}/${callId}`);
                     } else if (res.status === 403) {
