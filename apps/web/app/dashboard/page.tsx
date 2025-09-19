@@ -32,9 +32,8 @@ interface User{
 }
 
 interface Clips {
-  roomId: number;
+  callId: number;
   recorded: boolean;
-  processing: boolean;
   clips: {
     url: string;
     roomId: string;
@@ -72,7 +71,7 @@ export default  function Dashboard() {
     const router=useRouter();
     const {info,setInfo}=useUserInfo();
     const {socket,initSocket}=useSocketStore();
-    const {recordings,setRecordings,updateRecording}=useRecordingStore();
+    const {recordings,setRecordings}=useRecordingStore();
     const {previousCalls,setPreviousCalls}=useCallStore();
     const { scheduledCalls, setScheduledCallLogs, addScheduledCall }=useSchedulesCallStore();
     const callNameRef=useRef<HTMLInputElement>(null);
@@ -188,7 +187,6 @@ export default  function Dashboard() {
                 })
                 console.log(res3);
                 setRecordings(res3);
-
             }
 
             getInfo();
@@ -198,11 +196,15 @@ export default  function Dashboard() {
         if(!socket) return;
         const handler = async ({ roomId }: { roomId: string }) => {
             console.log('now you can request to fetch clips for ', roomId);
-            const res: Clips = await axios.get('/api/auth/get-room-clips',{
+            const res1: Clips = await axios.get('/api/auth/mark-recorded',{
                 params : {roomId}
             });
-            console.log(res);
-            updateRecording(Number(roomId),res);
+            console.log(res1);
+            const res2 : Clips[]=await axios.get('/api/auth/get-clips',{
+                params : {userId : Number(idRef.current)}
+            })
+            console.log(res2);
+            setRecordings(res2);
         }
         socket.on('post-process-done', handler);
         return () => {

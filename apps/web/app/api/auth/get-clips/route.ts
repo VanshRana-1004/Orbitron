@@ -37,10 +37,10 @@ async function getClipsByUserId(userId: string) {
       public_id: string;
     }[] = [];
 
-    if (call.recorded) {
-      console.log(call.callingId);
+    if (call.recorded===true) {
+      console.log('callingId of recorded call', call.callingId);
       const result = await cloudinary.search
-        .expression(`folder:recordings AND context.roomId=${call.callingId}`)
+        .expression(`folder:"recordings/${call.callingId}"`)
         .sort_by('created_at', 'asc')
         .max_results(100)
         .execute();
@@ -75,13 +75,13 @@ async function getClipsByUserId(userId: string) {
           public_id: String(clip.public_id),
         };
       });
+      
+      finalResult.push({
+        roomId: call.id,
+        recorded: call.recorded,
+        clips,
+      });
     }
-
-    finalResult.push({
-      roomId: call.id,
-      recorded: call.recorded,
-      clips,
-    });
   }
 
   return finalResult;
