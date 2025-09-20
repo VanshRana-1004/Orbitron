@@ -338,7 +338,7 @@ export default function Call() {  const localStreamRef=useRef<MediaStream>(null)
         socket.emit('join-room',{roomId : callIdRef.current, name : nameRef.current, userId : userIdRef.current},async (res : {error? : string,routerRtpCapabilities : RtpCapabilities, producers : Producer[], shared : boolean})=>{
           if(res.error){
             alert('error while joining room');
-            router.push('/');
+            router.push('/dashboard');
           }
           const { routerRtpCapabilities, producers, shared}=res;
           setSharedScreen(shared);
@@ -392,7 +392,6 @@ export default function Call() {  const localStreamRef=useRef<MediaStream>(null)
            encodings: [
             {
               maxBitrate: 1500_000, 
-              maxFramerate: 60
             }
           ],
           codecOptions: { videoGoogleStartBitrate: 1200 },

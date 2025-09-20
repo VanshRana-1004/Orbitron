@@ -22,6 +22,7 @@ import { useCallStore } from 'app/store/call-history';
 import { useUserInfo } from 'app/store/user-info';
 import { useRecordingStore } from 'app/store/recorded-calls';
 import { useSocketStore } from 'app/store/socket-connection';
+import { useCurrentVideoStore } from 'app/store/current-video';
 const SERVER_URL = 'http://localhost:8080'; 
 
 interface User{
@@ -32,8 +33,11 @@ interface User{
 }
 
 interface Clips {
+  slug : string;
   callId: number;
   recorded: boolean;
+  date : string;
+  time : string;
   clips: {
     url: string;
     roomId: string;
@@ -69,6 +73,7 @@ function isFutureDateTime(date?: Date, time?: { hours: number; minutes: number; 
 
 export default  function Dashboard() {
     const router=useRouter();
+    const {video,setVideo}=useCurrentVideoStore();
     const {info,setInfo}=useUserInfo();
     const {socket,initSocket}=useSocketStore();
     const {recordings,setRecordings}=useRecordingStore();
@@ -182,11 +187,11 @@ export default  function Dashboard() {
                 }
                 setPreviousCalls(callData);
 
-                const res3 : Clips[]=await axios.get('/api/auth/get-clips',{
+                const res3 =await axios.get('/api/auth/get-clips',{
                     params : {userId : Number(idRef.current)}
                 })
-                console.log(res3);
-                setRecordings(res3);
+                console.log(res3.data);
+                setRecordings(res3.data);
             }
 
             getInfo();
@@ -200,11 +205,34 @@ export default  function Dashboard() {
                 params : {roomId}
             });
             console.log(res1);
-            const res2 : Clips[]=await axios.get('/api/auth/get-clips',{
+            
+            
+            const res2 =await axios.get('/api/auth/get-clips',{
                 params : {userId : Number(idRef.current)}
             })
-            console.log(res2);
-            setRecordings(res2);
+            console.log(res2.data);
+            setRecordings(res2.data);
+
+            const res3=await axios.get('/api/auth/get-calls',{
+                params : {userId : Number(idRef.current)} 
+            });
+            console.log(res3);
+            const callData : {slug: string; callingId: string; peers: string,date : string,time : string,recorded : boolean,users : User[]}[]=[];
+            for(let i=0;i<res3.data.res.length;i++){
+                const slug=res3.data.res[i].call.slug;
+                const callingId=res3.data.res[i].call.callingId;
+                const peers=res3.data.res[i].call.callUserTimes.length;
+                const users : User[]=[];
+                const temp=res3.data.res[i].call.callUserTimes;
+                const date=res3.data.res[i].call.date;
+                const time=res3.data.res[i].call.startTime;
+                const recorded=res3.data.res[i].call.recorded
+                temp.map((x : any)=>(
+                    users.push({firstName : x.user.firstName,lastName : x.user.lastName,email : x.user.email,img : x.user.profileImage})
+                ))
+                callData.push({slug,callingId,peers,date,time,recorded,users})
+            }
+            setPreviousCalls(callData);
         }
         socket.on('post-process-done', handler);
         return () => {
@@ -213,6 +241,10 @@ export default  function Dashboard() {
     },[socket])
 
     async function createNewCall(){ 
+        if(callNameRef.current?.value==''){
+            alert('enter some value');
+            return;
+        }
         await axios.post('/api/auth/create-call', {
             callSlug : callNameRef.current?.value,
         }).then(async (response)=>{
@@ -232,6 +264,7 @@ export default  function Dashboard() {
                 } 
                 else console.log('not present');
                 console.log(data);
+                setShowCreate(false);
                 alert('call created successfully')
                 router.push(`/call/${slug}/${callId}`);
             } 
@@ -241,6 +274,10 @@ export default  function Dashboard() {
     }   
     
     async function joinCall() {
+        if(callNameRef.current?.value==''){
+            alert('enter some value');
+            return;
+        }
         await axios.post('/api/auth/join-call', {
             callId : callIdRef.current?.value,
         }).then(async (response)=>{
@@ -262,6 +299,7 @@ export default  function Dashboard() {
                             console.log('socket present')
                             socket?.emit('joined',{roomId : callId})
                         } 
+                        setShowJoin(false);
                         alert("Call joined successfully");
                         router.push(`/call/${slug}/${callId}`);
                     } else if (res.status === 403) {
@@ -386,6 +424,15 @@ export default  function Dashboard() {
             setSelectedFile(file); 
             setPreview(URL.createObjectURL(file));
         }
+    }
+
+    async function showClips(clips : {url: string,roomId: string,clipNum: string,public_id: string}[],slug : string){
+        setVideo({slug,clips});
+        console.log('recorded clips data set successfully')
+        console.log(video);
+        setTimeout(()=>{
+            router.push(`/recorded/${slug}`);
+        },500);
     }
 
     return <div className="bg-white dark:bg-zinc-950 flex flex-col items-center min-h-screen bg-[url('/light-bg.png')] dark:bg-[url('/dark-landing-bg-1.png')] bg-cover bg-center">
@@ -679,12 +726,31 @@ export default  function Dashboard() {
                             <div className='w-[16%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Time</div>
                         </div>
                         <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
-                        <p className='flex items-center justify-center w-full h-full  z-20 geist-font text-3xl font-light text-[#16422E] dark:text-white'>
-                            No calls yet.
-                        </p>
+                        {recordings.length===0 
+                        ? 
+                            <p className='flex items-center justify-center w-full h-full  z-20 geist-font text-3xl font-light text-[#16422E] dark:text-white'>
+                                No calls yet.
+                            </p>
+                        : 
+                            <div className='flex flex-col w-full h-full overflow-y-scroll scrollbar-none scroll-smooth no-scrollbar'>
+                                {recordings.map((call,index)=>{
+                                    return (<div key={index+1} className='flex flex-col w-full h-auto'>
+                                        <div onClick={() => showClips(call.clips, call.slug)} className={`flex w-full h-auto hover:dark:bg-gray-700 hover:bg-green-100 cursor-pointer`}>
+                                            <div className='w-[8%] py-1 text-sm pl-2 geist-font text-green-900 dark:text-gray-300'>{index+1}. </div>
+                                            <div className='w-[30%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.slug}</div>
+                                            <div className='w-[30%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.callId}</div>
+                                            <div className='w-[16%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.date}</div>
+                                            <div className='w-[16%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.time}</div>
+                                        </div>
+                                        <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
+                                    </div>)
+                                })}
+                            </div>
+                        }
                     </div> 
                     <div className='h-full border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40]'></div>
                     <div className='flex flex-col flex-1'>
+
                         <div className='flex items-center justify-between w-full px-3 py-1.5'>
                             <div className='geist-font text-[16px]  text-[#16422E] dark:text-[#FFFFFF]'>
                                 {show ? 'Scheduled Calls' : 'Call History'}
@@ -693,6 +759,7 @@ export default  function Dashboard() {
                                 {!show ? 'Scheduled Calls?' : 'Call History?'}    
                             </div>
                         </div>
+
                         <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
                         <div className='flex w-full h-auto'>
                             <div className='w-[12%] py-1 text-sm px-2 geist-font text-green-900 dark:text-gray-300'>Sr no.</div>
@@ -714,9 +781,9 @@ export default  function Dashboard() {
                                     return (<div key={index+1} className='flex flex-col w-full h-auto'>
                                         <div className={`flex w-full h-auto ${isPast && 'opacity-50'}`}>
                                             <div className='w-[12%] py-1 text-[13px] px-2 geist-font text-center text-green-900 dark:text-gray-300 overflow-hidden'>{index+1}. </div>
-                                            <div className='w-[38%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.slug}</div>
-                                            <div className='w-[25%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.date}</div>
-                                            <div className='w-[25%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.time}</div>
+                                            <div className='w-[38%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.slug}</div>
+                                            <div className='w-[25%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.date}</div>
+                                            <div className='w-[25%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.time}</div>
                                         </div>
                                         <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
                                     </div>)
@@ -735,9 +802,9 @@ export default  function Dashboard() {
                                     <div key={index+1} className='flex flex-col w-full h-auto hover:dark:bg-gray-700 hover:bg-green-100 cursor-pointer' onClick={()=>setCallDetail(index)}>
                                         <div className='flex w-full h-auto'>
                                             <div className='w-[12%] py-1 text-[13px] px-2 geist-font dark:text-gray-300 text-green-900  text-center overflow-hidden'>{index+1}.</div>
-                                            <div className='w-[30%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.slug}</div>
+                                            <div className='w-[30%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.slug}</div>
                                             <div className='w-[40%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.callingId}</div>
-                                            <div className='w-[18%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 overflow-hidden'>{call.peers}</div>
+                                            <div className='w-[18%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.peers}</div>
                                         </div>
                                         <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
                                     </div>

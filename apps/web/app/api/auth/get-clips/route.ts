@@ -14,13 +14,16 @@ async function getClipsByUserId(userId: string) {
       calls: true
     },
   });
-  console.log(userWithCalls)
+  console.log(userWithCalls) 
 
   if (!userWithCalls) return [];
 
   const finalResult: {
-    roomId: number;
+    callId: string;
+    slug : string; 
     recorded: boolean;
+    date : string;
+    time : string;
     clips: {
       url: string;
       roomId: string;
@@ -30,6 +33,7 @@ async function getClipsByUserId(userId: string) {
   }[] = [];
 
   for (const call of userWithCalls.calls) {
+    console.log(call.slug)
     let clips: {
       url: string;
       roomId: string;
@@ -77,7 +81,10 @@ async function getClipsByUserId(userId: string) {
       });
       
       finalResult.push({
-        roomId: call.id,
+        callId: call.callingId,
+        date : call.date,
+        time : call.startTime,
+        slug : call.slug,
         recorded: call.recorded,
         clips,
       });

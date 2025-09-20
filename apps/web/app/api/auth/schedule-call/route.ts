@@ -19,6 +19,7 @@ export async function POST(req : NextRequest) {
         console.log(res);
         return NextResponse.json({message:'Call Scheduled Successfully'},{status : 200})
     }catch(e){
+        console.log(e);
         return NextResponse.json({message:'unknown error while scheduling call'},{status : 500})
     }
 }

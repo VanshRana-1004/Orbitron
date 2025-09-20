@@ -1,8 +1,11 @@
 import {create} from 'zustand';
 
 interface CallRecording {
-  callId: number;
+  callId: string;
   recorded: boolean;
+  slug : string;
+  date : string;
+  time : string;
   clips: { url: string; roomId: string; clipNum: string; public_id: string }[];
 }
 
@@ -14,4 +17,4 @@ interface RecordingState {
 export const useRecordingStore = create<RecordingState>((set) => ({
   recordings: [],
   setRecordings: (recordings) => set({ recordings }),
-}));
+})); 
