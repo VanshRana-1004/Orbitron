@@ -10,6 +10,7 @@ import LayoutIcon from "./components/icons/layout";
 import ComputerIcon from "./components/icons/computer";
 import { useEffect,useState,useRef } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import BarIcon from "./components/icons/bar";
 
 const points = [
   { heading: "Start Recording", description:'With a single click, begin recording your live call. No extra setup or tools required - just hit record and focus on the conversation. Everything starts capturing from the moment you begin.',  img: "start-recording.png" },
@@ -71,7 +72,12 @@ export default function Home() {
             <a href={'#contact'} className="hover:text-[#e8e8e8] cursor-pointer">Contact</a>
           </div>}
 
-          <button onClick={()=>router.push('/login')} className="bg-white text-black poppins-medium font-medium text-[16px] rounded-[65px] tracking-[2%] px-[18px] py-[6px] cursor-pointer hover:bg-gray-200 transition-transform duration-150 active:scale-95" >Get Started</button>
+          {width>768 
+            ? 
+              <button onClick={()=>router.push('/login')} className={`bg-white text-black poppins-medium font-medium ${width>768 ? 'text-[16px]' : 'text-[13px]'} rounded-[65px] tracking-[2%] px-[18px] py-[6px] cursor-pointer hover:bg-gray-200 transition-transform duration-150 active:scale-95`}  >Get Started</button>
+            :
+              <BarIcon/>
+          }
 
         </div>
 
@@ -112,12 +118,12 @@ export default function Home() {
           </div>
 
           <div className={`flex flex-col text-wrap items-center justify-center poppins-medium font-normal `}>
-            <p className={`text-wrap w-[80%] text-center ${width>768 ? 'text-[18px] text-gray-300' : 'text-[16px] text-gray-400'} tracking-[-2%]`}>Orbitron combines real-time video calls with instant session recording - no extra setup, no hassle.</p>
+            <p className={`text-wrap w-[80%] text-center ${width>768 ? 'text-[18px] text-gray-300' : 'text-[15px] text-gray-400'} tracking-[-2%]`}>Orbitron combines real-time video calls with instant session recording - no extra setup, no hassle.</p>
           </div>
           
           <div className="flex gap-[20px]">
-            <button onClick={()=>router.push('/login')} className="text-[16px] poppins-medium font-medium bg-white text-black px-[24px] py-[16px] rounded-[100px] cursor-pointer hover:bg-gray-200 transition-transform duration-150 active:scale-95">Explore Now</button>
-            <a href={'#demo'} className="text-[16px] poppins-medium font-medium bg-black text-white px-[24px] py-[16px] rounded-[100px] cursor-pointer hover:bg-zinc-900 transition-transform duration-150 active:scale-95">Demo Video</a>
+            <button onClick={()=>router.push('/login')} className={`${width>768 ? 'text-[16px]' : 'text-[14px]'} poppins-medium font-medium bg-white text-black px-[24px] py-[14px] rounded-[100px] cursor-pointer hover:bg-gray-200 transition-transform duration-150 active:scale-95`}>Explore Now</button>
+            <a href={'#demo'} className={`${width>768 ? 'text-[16px]' : 'text-[14px]'} poppins-medium font-medium bg-black text-white px-[24px] py-[14px] rounded-[100px] cursor-pointer hover:bg-zinc-900 transition-transform duration-150 active:scale-95`}>Demo Video</a>
           </div>
 
         </div>   
@@ -200,7 +206,7 @@ export default function Home() {
                     <p className={`${width<600 ? 'text-5xl' : 'text-7xl'} poppins-semibold font-semibold ${activeIndex==0 ? 'text-[#EC4899]' : activeIndex==1 ? 'text-[#EAB308]' : 'text-[#EF4444]'}`}>0{activeIndex+1}</p>
                     <p className={`poppins-medium tracking-[-5%]  text-[#d5cfcf] text-wrap w-full ${width<768 ? 'text-[30px]' : 'text-[40px]' }`}>{points[activeIndex]?.heading}</p>
                   </div>
-                  <p className={`poppins-medium tracking-[-2%] text-[16px] text-gray-400 text-wrap ${width<1000?'w-full':'w-[80%]'} leading-[-5%] `}>{points[activeIndex]?.description}</p>
+                  <p className={`poppins-medium tracking-[-2%] ${width>768 ? 'text-[20px]' : 'text-[15px]' } text-gray-400 text-wrap ${width<1000?'w-full':'w-[80%]'} leading-[-5%] `}>{points[activeIndex]?.description}</p>
                 </div>
             
               </div>
@@ -270,9 +276,9 @@ export default function Home() {
 
                 <div className={`flex flex-col gap-2 items-start`}>
                   <div className={`${width<768 && '-translate-x-10'}`}><ComputerIcon/></div>
-                  <div className={`poppins-medium tracking-[-5%] text-[#B3ABAB] leading-none ${width<768 ? 'text-[20px]' : 'text-[28px]'}`}>Seamless Screen Sharing</div>
+                  <div className={`poppins-medium tracking-[-5%] text-[#B3ABAB] leading-none ${width<768 ? 'text-[18px]' : 'text-[28px]'}`}>Seamless Screen Sharing</div>
                 </div>
-                <div className="poppins-medium tracking-[-5%] text-[16px] text-gray-500 text-wrap">Share your screen in real time with crystal clarity, perfect for demos and collaborations.</div>
+                <div className={`poppins-medium tracking-[-5%] ${width>768 ? 'text-[16px]' : 'text-[14px]'} text-gray-500 text-wrap`}>Share your screen in real time with crystal clarity, perfect for demos and collaborations.</div>
               
               </div>
 
@@ -299,9 +305,9 @@ export default function Home() {
                       <div className="p-2.5 h-5 w-5 rounded-full bg-[#7E5BEF]"></div>
                       <div className="poppins-semibold text-[30px] text-[#7E5BEF]">REC</div>
                     </div>
-                    <div className={`poppins-medium tracking-[-5%] text-[#B3ABAB] leading-none ${width<768 ? 'text-[20px]' : 'text-[28px]'}`}>Automatic Session Recording</div>
+                    <div className={`poppins-medium tracking-[-5%] text-[#B3ABAB] leading-none ${width<768 ? 'text-[18px]' : 'text-[28px]'}`}>Automatic Session Recording</div>
                   </div>
-                  <div className="poppins-medium tracking-[-5%] text-[16px] text-gray-500 text-wrap">Forget messy screen recorders - your calls are captured directly on our servers from the start.</div>
+                  <div className={`poppins-medium tracking-[-5%] ${width>768 ? 'text-[16px]' : 'text-[14px]'} text-gray-500 text-wrap`}>Forget messy screen recorders - your calls are captured directly on our servers from the start.</div>
     
               
               </div>
@@ -326,9 +332,9 @@ export default function Home() {
 
                   <div className="flex flex-col gap-2 items-start">
                     <div className={`${width<768 && '-translate-x-5'}`}><CloudIcon/></div>
-                    <div className={`poppins-medium tracking-[-5%] text-[#B3ABAB] leading-none ${width<768 ? 'text-[20px]' : 'text-[28px]'}`}>Cloud-Stored Final Clips</div>
+                    <div className={`poppins-medium tracking-[-5%] text-[#B3ABAB] leading-none ${width<768 ? 'text-[18px]' : 'text-[28px]'}`}>Cloud-Stored Final Clips</div>
                   </div>
-                  <div className="poppins-medium tracking-[-5%] text-[16px] text-gray-500 text-wrap">Every session is securely stored in the cloud, ready to revisit anytime.</div>
+                  <div className={`poppins-medium tracking-[-5%] ${width>768 ? 'text-[16px]' : 'text-[14px]'} text-gray-500 text-wrap`}>Every session is securely stored in the cloud, ready to revisit anytime.</div>
               </div>
 
             </div>
@@ -355,9 +361,9 @@ export default function Home() {
                 
                 <div className="flex flex-col gap-0 items-start">
                   <div className={`${width<768 && '-translate-x-5'}`}><LayoutIcon/></div>
-                  <div className={`poppins-medium tracking-[-5%] text-[#B3ABAB] leading-[1.1] ${width<768 ? 'text-[20px]' : 'text-[28px]'}`}>Dynamic Peer Management</div>
+                  <div className={`poppins-medium tracking-[-5%] text-[#B3ABAB] leading-[1.1] ${width<768 ? 'text-[18px]' : 'text-[28px]'}`}>Dynamic Peer Management</div>
                 </div>
-                <div className="poppins-medium tracking-[-5%] text-[16px] text-gray-500 text-wrap">Peers can join or leave anytime — we handle it smoothly. Currently supports up to 5 peers (scalability in progress).</div>
+                <div className={`poppins-medium tracking-[-5%] ${width>768 ? 'text-[16px]' : 'text-[14px]'} text-gray-500 text-wrap`}>Peers can join or leave anytime — we handle it smoothly. Currently supports up to 5 peers (scalability in progress).</div>
    
               </div>
 
@@ -380,9 +386,9 @@ export default function Home() {
 
                   <div className="flex flex-col gap-2 items-start ">
                     <div className={`${width<768 && '-translate-x-5'}`}><MsgIcon/></div>
-                    <div className={`poppins-medium tracking-[-5%] text-[#B3ABAB] leading-none ${width<768 ? 'text-[20px]' : 'text-[28px]'}`}>Built-in Chat Messaging</div>
+                    <div className={`poppins-medium tracking-[-5%] text-[#B3ABAB] leading-none ${width<768 ? 'text-[18px]' : 'text-[28px]'}`}>Built-in Chat Messaging</div>
                   </div>
-                  <div className="poppins-medium tracking-[-5%] text-[16px] text-gray-500 text-wrap">Stay connected with integrated messaging alongside your video calls.</div>
+                  <div className={`poppins-medium tracking-[-5%] ${width>768 ? 'text-[16px]' : 'text-[14px]'} text-gray-500 text-wrap`}>Stay connected with integrated messaging alongside your video calls.</div>
 
               </div>
   
@@ -394,7 +400,7 @@ export default function Home() {
       </div>
       
       <div
-        className={`w-full h-auto pt-28 gap-28 flex flex-col items-center bg-black ${width<768 ? 'px-2' : 'px-16' }`}
+        className={`w-full h-auto pt-28 gap-24 flex flex-col items-center bg-black ${width<768 ? 'px-2' : 'px-16' }`}
         style={{
           backgroundImage: `
             radial-gradient(ellipse 80% 60% at 50% 0%, rgba(126, 91, 239, 0.25), transparent 70%),
@@ -410,31 +416,31 @@ export default function Home() {
 
         <div className="flex flex-col items-center justify-center gap-5 h-48">
           <div className="flex flex-col leading-0 items-center justify-center gap-0">
-            <p className={`font-regular poppins-medium ${width>768 ? 'text-[45px] text-gray-300' : 'text-[22px] text-gray-400'} tracking-[-4%]`}>Conversations That Last Forever</p>
-            <p className={`font-regular poppins-medium ${width>768 ? 'text-[25px] text-gray-400' : 'text-[19px] text-gray-500'} tracking-[-4%]`}>Connect. Capture. Replay.</p>
+            <p className={`font-regular poppins-medium ${width>768 ? 'text-[45px] text-gray-300' : 'text-[20px] text-gray-400'} tracking-[-4%]`}>Conversations That Last Forever</p>
+            <p className={`font-regular poppins-medium ${width>768 ? 'text-[25px] text-gray-400' : 'text-[16px] text-gray-500'} tracking-[-4%]`}>Connect. Capture. Replay.</p>
           </div>
-          <button onClick={()=>router.push('/login')} className="text-[16px] poppins-medium font-medium bg-white hover:bg-gray-200 cursor-pointer text-black px-[24px] py-[12px] rounded-[100px] transition-transform duration-150 active:scale-95">Try Now</button>
+          <button onClick={()=>router.push('/login')} className={`${width>768 ? 'text-[16px]' : 'text-[14px]'} poppins-medium font-medium bg-white hover:bg-gray-200 cursor-pointer text-black px-[24px] py-[14px] rounded-[100px] transition-transform duration-150 active:scale-95`}>Try Now</button>
         </div>
 
-        <div className={`flex flex-col ${width<768 ? 'p-8 px-5' : 'p-12'} flex-1 border-y border-r border-l border-b-0 border-zinc-800 rounded-t-xl w-full bg-black gap-10 `}>
-          <div className={`flex justify-between ${width<768 && 'flex-col gap-4'}`}>
-            <div className={`flex flex-col gap-2 ${width<768 && 'items-center gap-4'}`}>
+        <div className={`flex flex-col ${width<768 ? 'p-8 px-5' : 'p-12'} flex-1 border-y border-r border-l border-b-0 border-zinc-800 rounded-t-xl w-full bg-black gap-8 `}>
+          <div className={`flex justify-between ${width<768 && 'flex-col gap-10'}`}>
+            <div className={`flex flex-col gap-2 ${width<768 && 'items-center gap-6'}`}>
               <a href={'#main'} className="flex items-center justify-start gap-2 cursor-pointer">
                 <img src="carbon_shape-exclude.svg" alt="" className={`${width>768 ? '' : 'size-8'}`} />
                 <div className={`poppins-medium ${width>768 ? 'text-[25px]' : 'text-[20px]'} tracking-[-4%] `}>Orbitron</div> 
               </a>
               <div className={`flex flex-col leading-1 ${width<768 && 'items-center'}`}>
-                <p className={`poppins-medium font-normal text-gray-200 ${width>768 ? 'text-[19px]' : 'text-[15px]'}`}>Get rid of screen recording!</p>
-                <p className="poppins-regular font-normal text-[15px] text-gray-500 text-wrap text-center">v0 supports up to 5 peers per room. More coming soon.</p>
+                <p className={`poppins-medium font-normal text-gray-200 ${width>768 ? 'text-[19px]' : 'text-[16px]'}`}>Get rid of screen recording!</p>
+                <p className={`poppins-regular font-normal ${width>768 ? 'text-[15px]' : 'text-[14px]'} text-gray-500 text-wrap text-center`}>v0 supports up to 5 peers per room. More coming soon.</p>
               </div>
               
             </div>
             <div className={`flex flex-col gap-2 ${width<768 && 'items-center'}`}>
-              <div className={`poppins-medium font-medium text-gray-200 ${width>768 ? 'text-[19px]' : 'text-[15px]'}`}>Product</div>
+              <div className={`poppins-medium font-medium text-gray-200 ${width>768 ? 'text-[19px]' : 'text-[16px]'}`}>Product</div>
               <div className={`flex ${width<768 ? 'gap-5  -translate-y-2' : 'gap-10'}`}>
-                <a href={'#works'} className="poppins-regular font-normal text-gray-500 text-[15px] hover:text-[#e8e8e8] cursor-pointer">How it Works</a>
-                <a href={'#features'} className="poppins-regular font-normal text-gray-500 text-[15px] hover:text-[#e8e8e8] cursor-pointer">Features</a>
-                <a href={'#demo'} className="poppins-regular font-normal text-gray-500 text-[15px] hover:text-[#e8e8e8] cursor-pointer">Demo Video</a>
+                <a href={'#works'} className={`poppins-regular font-normal text-gray-500 ${width>768 ? 'text-[15px]' : 'text-[14px]'} hover:text-[#e8e8e8] cursor-pointer`}>How it Works</a>
+                <a href={'#features'} className={`poppins-regular font-normal text-gray-500 ${width>768 ? 'text-[15px]' : 'text-[14px]'} hover:text-[#e8e8e8] cursor-pointer`}>Features</a>
+                <a href={'#demo'} className={`poppins-regular font-normal text-gray-500 ${width>768 ? 'text-[15px]' : 'text-[14px]'} hover:text-[#e8e8e8] cursor-pointer`}>Demo Video</a>
               </div>
             </div> 
 
@@ -445,7 +451,7 @@ export default function Home() {
               <a href="https://github.com/VanshRana-1004" target="_blank" rel="noopener noreferrer" className="cursor-pointer border border-transparent p-1 hover:bg-zinc-950 hover:border-zinc-800 rounded"><GithubIcon/></a>
           </div>
           <div className="border-b w-[70%] self-center border-zinc-800"></div>
-          <p className="poppins-medium font-normal text-gray-500 text-[15px] self-center text-wrap text-center">© 2025 Orbitron. Made with ❤️ for everyone, everywhere.</p>
+          <p className={`poppins-medium font-normal text-gray-500 ${width>768 ? 'text-[15px]' : 'text-[14px]'} self-center text-wrap text-center`}>© 2025 Orbitron. Made with ❤️ for everyone, everywhere.</p>
         </div>
 
       </div>

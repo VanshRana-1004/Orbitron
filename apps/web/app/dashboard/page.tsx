@@ -23,6 +23,10 @@ import { useUserInfo } from 'app/store/user-info';
 import { useRecordingStore } from 'app/store/recorded-calls';
 import { useSocketStore } from 'app/store/socket-connection';
 import { useCurrentVideoStore } from 'app/store/current-video';
+import ScrollTop from 'app/components/icons/scrollTop';
+import BarIcon from 'app/components/icons/bar';
+import CreateCallIcon from 'app/components/icons/createCall';
+import JinCallIcon from 'app/components/icons/joinCall';
 const SERVER_URL = 'http://localhost:8080'; 
 
 interface User{
@@ -109,6 +113,32 @@ export default  function Dashboard() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [selectedFile,setSelectedFile]=useState<File | null>(null);
 
+    const [width,setWidth]=useState<number>(1536);
+    const [showButton, setShowButton] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > window.innerHeight/2) {
+                setShowButton(true);
+            } else {
+                setShowButton(false);
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    useEffect(()=>{
+        const handleScreenResize=()=>{
+        const wdth=window.innerWidth;
+        setWidth(wdth);
+        }
+        handleScreenResize();
+        window.addEventListener('resize',handleScreenResize);
+        return ()=>{window.removeEventListener('resize',handleScreenResize)}
+    },[])
+
     const handleTimeChange = (time: { hours: number; minutes: number; ampm: 'AM' | 'PM' }) => {
         setSelectedTime(time);
     };
@@ -149,90 +179,34 @@ export default  function Dashboard() {
     },[])
 
     useEffect(()=>{
-            if(!auth) return;
-            async function getInfo(){
-                const res1 = await axios.get('/api/auth/get-scheduled-calls',{
-                    params : {userId : Number(idRef.current)} 
-                });
-                console.log(res1);
-                const sorted1 = res1.data.res
-                    .sort((a : {slug: string; date: string; time: string }, b : {slug: string; date: string; time: string }) => {
-                        const dateA = new Date(`${a.date} ${a.time}`);
-                        const dateB = new Date(`${b.date} ${b.time}`);
-                        return dateB.getTime() - dateA.getTime();
-                    })
-                    .map(({ slug, date, time } : {slug: string; date: string; time: string }) => ({ slug, date, time })); 
+        if(!auth) return;
+        async function getInfo(){
+            const res =await axios.get('/api/auth/get-clips',{
+                params : {userId : Number(idRef.current)}
+            })
+            console.log(res.data);
+            setRecordings(res.data);
+        }
 
-                setScheduledCallLogs(sorted1);
-
-
-                const res2=await axios.get('/api/auth/get-calls',{
-                    params : {userId : Number(idRef.current)} 
-                });
-                console.log(res2);
-                const callData : {slug: string; callingId: string; peers: string,date : string,time : string,recorded : boolean,users : User[]}[]=[];
-                for(let i=0;i<res2.data.res.length;i++){
-                    const slug=res2.data.res[i].call.slug;
-                    const callingId=res2.data.res[i].call.callingId;
-                    const peers=res2.data.res[i].call.callUserTimes.length;
-                    const users : User[]=[];
-                    const temp=res2.data.res[i].call.callUserTimes;
-                    const date=res2.data.res[i].call.date;
-                    const time=res2.data.res[i].call.startTime;
-                    const recorded=res2.data.res[i].call.recorded
-                    temp.map((x : any)=>(
-                        users.push({firstName : x.user.firstName,lastName : x.user.lastName,email : x.user.email,img : x.user.profileImage})
-                    ))
-                    callData.push({slug,callingId,peers,date,time,recorded,users})
-                }
-                setPreviousCalls(callData);
-
-                const res3 =await axios.get('/api/auth/get-clips',{
-                    params : {userId : Number(idRef.current)}
-                })
-                console.log(res3.data);
-                setRecordings(res3.data);
-            }
-
-            getInfo();
+        getInfo();
     },[auth])
 
     useEffect(()=>{
         if(!socket) return;
         const handler = async ({ roomId }: { roomId: string }) => {
             console.log('now you can request to fetch clips for ', roomId);
+
             const res1: Clips = await axios.get('/api/auth/mark-recorded',{
                 params : {roomId}
             });
             console.log(res1);
-            
             
             const res2 =await axios.get('/api/auth/get-clips',{
                 params : {userId : Number(idRef.current)}
             })
             console.log(res2.data);
             setRecordings(res2.data);
-
-            const res3=await axios.get('/api/auth/get-calls',{
-                params : {userId : Number(idRef.current)} 
-            });
-            console.log(res3);
-            const callData : {slug: string; callingId: string; peers: string,date : string,time : string,recorded : boolean,users : User[]}[]=[];
-            for(let i=0;i<res3.data.res.length;i++){
-                const slug=res3.data.res[i].call.slug;
-                const callingId=res3.data.res[i].call.callingId;
-                const peers=res3.data.res[i].call.callUserTimes.length;
-                const users : User[]=[];
-                const temp=res3.data.res[i].call.callUserTimes;
-                const date=res3.data.res[i].call.date;
-                const time=res3.data.res[i].call.startTime;
-                const recorded=res3.data.res[i].call.recorded
-                temp.map((x : any)=>(
-                    users.push({firstName : x.user.firstName,lastName : x.user.lastName,email : x.user.email,img : x.user.profileImage})
-                ))
-                callData.push({slug,callingId,peers,date,time,recorded,users})
-            }
-            setPreviousCalls(callData);
+            
         }
         socket.on('post-process-done', handler);
         return () => {
@@ -435,388 +409,62 @@ export default  function Dashboard() {
         },500);
     }
 
-    return <div className="bg-white dark:bg-zinc-950 flex flex-col items-center min-h-screen bg-[url('/light-bg.png')] dark:bg-[url('/dark-landing-bg-1.png')] bg-cover bg-center">
+    return <div id={'main'} className={`min-h-screen w-screen bg-black overflow-hidden flex flex-col ${width>768 ? 'px-24 pt-1.5 gap-1.5' : width>450 ? 'px-12 gap-1.5 pt-1.5' : 'px-1 gap-1 pt-1'} `}
+    style={{
+      scrollBehavior: "smooth",
+      backgroundImage: `
+        repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(75, 85, 99, 0.08) 19px, rgba(75, 85, 99, 0.08) 20px, transparent 20px, transparent 39px, rgba(75, 85, 99, 0.08) 39px, rgba(75, 85, 99, 0.08) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(75, 85, 99, 0.08) 19px, rgba(75, 85, 99, 0.08) 20px, transparent 20px, transparent 39px, rgba(75, 85, 99, 0.08) 39px, rgba(75, 85, 99, 0.08) 40px),
+        radial-gradient(circle at 20px 20px, rgba(55, 65, 81, 0.12) 2px, transparent 2px),
+        radial-gradient(circle at 40px 40px, rgba(55, 65, 81, 0.12) 2px, transparent 2px)
+      `,
+      backgroundSize: '40px 40px, 40px 40px, 40px 40px, 40px 40px',
+    }}>
+        <div className={`relative z-10  w-full  ${width>768 ? 'px-6 py-2' : 'px-3 py-3'} flex justify-between items-center`}>
+            <div  className="flex items-center gap-2 cursor-pointer" onClick={()=>router.push('/')}>
+                <img src="carbon_shape-exclude.svg" alt="" className={`${width>768 ? '' : 'size-8'}`} />
+                <div className={`poppins-medium ${width>768 ? 'text-[25px]' : 'text-[20px]'} tracking-[-4%]`}>Orbitron</div> 
+            </div>
+            {width>=1024
+              ?
+                <div className='flex items-center justify-center gap-7'>
+                    <div className='poppins-medium px-4 tracking-[-5%] text-[15px] py-1.5 rounded-full bg-[#9d34ff] text-white cursor-pointer hover:bg-[#8b10ff] transition-transform duration-150 active:scale-95'>Create Call</div>
+                    <div className='poppins-medium px-4 tracking-[-5%] text-[15px] py-1.5 rounded-full bg-[#9d34ff] text-white cursor-pointer hover:bg-[#8b10ff] transition-transform duration-150 active:scale-95'>Join Call</div>
+                    <div className='poppins-medium px-4 tracking-[-5%] text-[15px] py-1.5 rounded-full bg-white text-black cursor-pointer hover:bg-gray-200 transition-transform duration-150 active:scale-95'>Log Out</div>
+                </div>
+              : 
+            <div className='poppins-medium px-4 tracking-[-5%] text-[15px] py-1.5 rounded-full bg-white text-black cursor-pointer hover:bg-gray-200 transition-transform duration-150 active:scale-95'>Log Out</div>
+            }
+        </div>
+
+        <div
+          className={`fixed w-[500px] h-[500px] rounded-full z-0 ${width<768 ? 'top-0 left-0 -translate-y-40 -translate-x-40' : 'top-0 -translate-y-36 -translate-x-36'}`}
+          style={{
+            background: `radial-gradient(circle, rgba(126, 91, 239, 0.4) 0%, rgba(166, 109, 246, 0.2) 60%, transparent 100%)`,
+            filter: 'blur(100px)',
+          }}
+        ></div>
+
+        <div
+          className={`fixed w-[500px] h-[500px] rounded-full z-0 ${width<768 ? 'bottom-0 right-0 translate-y-5 translate-x-16' : 'bottom-0 translate-y-36 right-0 translate-x-24'}`}
+          style={{
+            background: `radial-gradient(circle, rgba(126, 91, 239, 0.4) 0%, rgba(166, 109, 246, 0.2) 60%, transparent 100%)`,
+            filter: 'blur(100px)',
+          }}
+        ></div>
         
-        {(showCreate || showJoin) && <div className='flex flex-col p-3 gap-3 fixed top-1/2 -translate-x-1/2 left-1/2 -translate-y-1/2 w-1/3 h-auto z-30 bg-white dark:bg-[#02060D] rounded border border-[#7AF8C1] dark:border-[#1E2C40]'>
-            <div className='flex justify-between items-center w-full'>
-                <div className='geist-font text-[20px] font-semibold text-[#16422E] dark:text-[#0076FC]'>
-                    {showCreate?'Creating a call':'Joining a call'}
-                </div>
-                <div onClick={()=>{setShowCreate(false), setShowJoin(false)}} className='cursor-pointer'><CrossIcon/></div>
-            </div>
-            <div className={`w-full border border-[#16422E] dark:border-[#FFFFFF] `}></div>
-            <div className='flex w-full gap-2 items-center justify-start'>
-                <p className='text-[#16422E] dark:text-white geist-font tracking-tight text-[16px]'>{showCreate?'Enter the name of the call : ':'Enter the call id : '}</p>
-                <input ref={showCreate ? callNameRef : callIdRef} type="text" className="text-[#16422E] dark:text-[#FFFFFF]  px-1 w-[40%] border-0 border-b border-[#16422E] dark:border-white focus:outline-none focus:ring-0 focus:border-[#16422E] focus:dark:border-white bg-transparent"/>
-            </div>
-            <div className='flex w-full justify-end gap-3 items-center'>
-                <div onClick={()=>{setShowCreate(false), setShowJoin(false)}} className='cursor-pointer px-3 py-0.5 border rounded border-[#d1ffeb] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-[#0c1423] flex justify-center items-center geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>cancel</div>
-                {showCreate && <div onClick={createNewCall} className='cursor-pointer px-3 py-0.5 border rounded border-[#16422E] dark:border-[#1E2C40] bg-[#16422E] dark:bg-[#0076FC] flex justify-center items-center geist-font text-[14px] tracking-tight text-white font-medium'>create</div>}
-                {showJoin && <div onClick={joinCall} className='cursor-pointer px-3 py-0.5 border rounded border-[#16422E] dark:border-[#1E2C40] bg-[#16422E] dark:bg-[#0076FC] flex justify-center items-center geist-font text-[14px] tracking-tight text-white font-medium'>join</div>}
-            </div>
+        {showButton && <a href={'#main'} className='fixed z-20 bottom-5 right-5 bg-white/20 border-white/40 p-1 rounded-full'>
+            <ScrollTop/>
+        </a>}
 
-        </div>}
-
-        {showCalendar && 
-            <div className='flex flex-col p-3 gap-3 fixed top-1/2 -translate-x-1/2 left-1/2 -translate-y-1/2 w-1/2 h-auto z-30 bg-white dark:shadow-none dark:bg-[#02060D] rounded border border-[#7AF8C1] dark:border-[#1E2C40]'>
-                <div className='flex justify-between items-center w-full'>
-                    <div className='geist-font text-[20px] font-semibold text-[#16422E] dark:text-[#0076FC]'>
-                        Schedule a call
-                    </div>
-                    <div onClick={()=>{setShowCalendar(false)}} className='cursor-pointer'><CrossIcon/></div>
-                </div>
-
-                <div className={`w-full border border-[#16422E] dark:border-[#FFFFFF] `}></div>
+        <div className={`flex flex-col flex-1 rounded-md border-zinc-800 bg-black border border-b-0 z-10 pb-0 ${width>768 ? 'px-16 py-4' : 'py-4 px-10'}`}>
+            <p className={` ${width<768 ? 'text-[18px]' : 'text-[30px]'} leading-[60px] poppins-medium tracking-[-5%] items-center justify-center bg-[linear-gradient(92.22deg,rgba(255,255,255,0.4)_-6.68%,#FAF9F9_31.88%,#D1D1D1_61.39%,rgba(181,181,181,0.4)_89.88%)] bg-clip-text text-transparent poppins-medium pb-0 border-b `}>Recorded Sessions</p>
+            <div className={`w-full flex flex-col gap-10 min-h-full mt-5`}>
                 
-                <div className='flex w-full h-auto gap-3'>
-                    <div className='flex flex-col w-auto h-auto gap-1'>
-                        <DatePicker
-                            selected={selectedDate}
-                            onSelect={setSelectedDate}
-                            className="my-custom-class"
-                        />
-                    </div>
-                    
-                    <div className='relative flex-1 flex flex-col gap-1'>
-                        <div className="w-auto h-auto">
-                            <TimeSelector
-                                initialTime={selectedTime}
-                                onChange={handleTimeChange}
-                                className="mx-auto"
-                            />                            
-                        </div>
-
-                        <div className='flex flex-col gap-2 py-3'>
-                            <div className={`flex gap-2`}>
-                                <p className='geist-font text-[14px] font-medium text-green-700 dark:text-white'>Selected Date  : </p>
-                                <p className='geist-font text-[14px] font-medium text-[#16422E] dark:text-[#0076FC]'>{formatDate(selectedDate)}</p>
-                            </div>
-                            <div className={`flex gap-2`}>
-                                <p className='geist-font text-[14px] font-medium text-green-700 dark:text-white'>Selected Time  : </p>
-                                <p className='geist-font text-[14px] font-medium text-[#16422E] dark:text-[#0076FC]'>{formatTime(selectedTime)}</p>
-                            </div>
-                            <div className={`flex gap-2`}>
-                                <p className='geist-font text-[14px] font-medium text-green-700 dark:text-white'>Enter Call Name  : </p>
-                                <input ref={scheduledCallNameRef} className='px-2 border-b border-[#16422E] dark:border-[#0076FC] focus:outline-none focus:ring-0 focus:border-[#16422E] focus:dark:border-[#0076FC] bg-transparent  geist-font text-[14px] font-medium text-[#16422E] dark:text-[#0076FC]' type="text" />
-                            </div>
-                        </div>
-
-                        <div className='absolute flex w-auto gap-2 items-center bottom-0 right-0'>
-                            <div onClick={()=>{setShowCalendar(false)}} className='cursor-pointer px-3 py-0.5 border rounded border-[#d1ffeb] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-[#0c1423] flex justify-center items-center geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>Cancel</div>
-                            <div className='cursor-pointer px-3 py-0.5 border rounded border-[#16422E] dark:border-[#1E2C40] bg-[#16422E] dark:bg-[#0076FC] flex justify-center items-center geist-font text-[14px] tracking-tight text-white font-medium' onClick={scheduleCall}>Done</div>
-                        </div>
-                    </div>
-                    
-                </div>
-
-            </div>
-        }
-
-        {!showCreate && !showJoin && !showCalendar && callDetail===-1 && <div className={`absolute inset-0 w-full h-full z-10 
-            bg-transparent 
-            [background-image:linear-gradient(to_right,#CDFCE7_1px,transparent_1px),linear-gradient(to_bottom,#CDFCE7_1px,transparent_1px)]
-            [background-size:60px_60px]
-            dark:[background-image:linear-gradient(to_right,#0B0F17_1px,transparent_1px),linear-gradient(to_bottom,#0B0F17_1px,transparent_1px)]`
-        }/>}
-
-        {callDetail!=-1 && 
-            <div className='flex flex-col p-3 gap-3 fixed top-1/2 -translate-x-1/2 left-1/2 -translate-y-1/2 w-1/3 h-auto z-30 bg-white dark:shadow-none dark:bg-[#02060D] rounded border border-[#7AF8C1] dark:border-[#1E2C40]'>
-                
-                <div className='flex justify-between items-center w-full'>
-                    <div className='geist-font text-[20px] font-semibold text-[#16422E] dark:text-[#0076FC]'>
-                        Call Detail
-                    </div>
-                    <div onClick={()=>{setCallDetail(-1)}} className='cursor-pointer'><CrossIcon/></div>
-                </div>
-                
-                <div className={`w-full border border-[#16422E] dark:border-[#FFFFFF] `}></div>
-
-                <div className="w-full h-auto flex flex-col gap-2 p-4 rounded-xl bg-green-50 dark:bg-[#02060D] text-[#16422E] dark:text-white border border-[#7AF8C1] dark:border-[#1E2C40]">
-                    <div className="flex gap-1 items-center ">
-                        <p className="geist-font text-[14px] font-light">Call Name :</p>
-                        <p className="geist-font text-[14px] font-regular">{previousCalls[callDetail]?.slug}</p>
-                    </div>
-
-                    <div className="flex gap-1 items-center ">
-                        <p className="geist-font text-[14px] font-light">Call ID :</p>
-                        <p className="geist-font text-[14px] font-regular">{previousCalls[callDetail]?.callingId}</p>
-                    </div>
-
-                    <div className="flex gap-1 items-center ">
-                        <p className="geist-font text-[14px] font-light">Date :</p>
-                        <p className="geist-font text-[14px] font-regular">{previousCalls[callDetail]?.date}</p>
-                    </div>
-
-                    <div className="flex gap-1 items-center ">
-                        <p className="geist-font text-[14px] font-light">Time :</p>
-                        <p className="geist-font text-[14px] font-regular">{previousCalls[callDetail]?.time}</p>
-                    </div>
-                    
-                    <div className="flex gap-1 items-center ">
-                        <p className="geist-font text-[14px] font-light">Recorded :</p>
-                        <p className="geist-font text-[14px] font-regular">{previousCalls[callDetail]?.recorded ? 'yes' : 'no'}</p>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                        <p className="geist-font text-[14px] font-light">Peers who joined the call:</p>
-                        <div className="flex flex-col gap-3 pl-2">
-                            {previousCalls[callDetail]?.users?.map((user, ind) => (
-                                <div key={ind} className="bg-white dark:bg-[#0B121C] p-3 rounded-md shadow-sm border border-[#CDFCE7] dark:border-[#1E2C40]">
-                                    <p className="geist-font text-[14px] font-regular"><span className="geist-font text-[14px] font-light">Name:</span> {user.firstName} {user.lastName}</p>
-                                    <p className="geist-font text-[14px] font-regular"><span className="geist-font text-[14px] font-light">Email:</span> {user.email}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        }
-
-        {feedBack && 
-            <div className='flex flex-col p-3 gap-3 fixed top-1/2 -translate-x-1/2 left-1/2 -translate-y-1/2 w-1/3 h-auto z-30 bg-white dark:shadow-none dark:bg-[#02060D] rounded border border-[#7AF8C1] dark:border-[#1E2C40]'>
-
-                <div className='flex justify-between items-center w-full'>
-                    <div className='flex gap-1 items-center geist-font text-[20px] font-semibold text-[#16422E] dark:text-[#0076FC]'>
-                        Enter your feedback <HeartIcon/>
-                    </div>
-                    <div onClick={()=>{setFeedback(false)}} className='cursor-pointer'><CrossIcon/></div>
-                </div> 
-
-                <textarea ref={feedbackRef} rows={4} className="w-full p-2 text-[#16422E] dark:text-gray-300 border border-[#7AF8C1] dark:border-[#1E2C40] geist-font text-[16px] font-light resize-none rounded-md focus:ring-0 outline-none bg-transparent"/>
-
-                <div className='w-full flex gap-2 items-center justify-end'>
-                    <div onClick={()=>{setFeedback(false)}} className='cursor-pointer px-3 py-0.5 border rounded border-[#d1ffeb] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-[#0c1423] flex justify-center items-center geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium '>Cancel</div>
-                    <div className='cursor-pointer px-3 py-0.5 border rounded border-[#16422E] dark:border-[#1E2C40] bg-[#16422E] dark:bg-[#0076FC] flex justify-center items-center geist-font text-[14px] tracking-tight text-white font-medium' onClick={sendFeedback}>send</div>
-                </div>
-
-            </div>
-        }
-
-        {showProfile && 
-            <div className='fixed flex flex-col top-1/2 left-1/2 gap-2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-auto p-3 z-30 bg-white dark:shadow-none dark:bg-[#02060D] rounded border border-[#7AF8C1] dark:border-[#1E2C40]'>
-                <div className='w-full flex items-center justify-between'>
-                    <p className='geist-font text-[16px] font-medium text-[#16422E] dark:text-[#0076FC]'>Your profile</p>
-                    <div onClick={()=>{setShowProfile(false);setLnChange(false);setFnChange(false);setImageChange(false);}} className='cursor-pointer self-end'><CrossIcon/></div>
-                </div>
-                <div className={`w-full border border-[#16422E] dark:border-[#0076FC] `}></div>
-                <div className='w-full flex h-64 gap-3'>
-                    <div className='flex flex-col py-10'>
-                        <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" style={{ display: "none" }}/>
-                        {preview 
-                            ? 
-                            <img src={preview} alt="Selected" className="w-40 h-40 bg-black object-cover rounded border border-[#7AF8C1] dark:border-[#1E2C40]"/>
-                            :
-                            <img src={img} alt="" className='w-40 h-40 overflow-hidden object-cover content-center rounded border bg-black border-[#7AF8C1] dark:border-[#1E2C40]'/>
-                        }
-                        {!imgChange && <div onClick={() => fileInputRef.current?.click()} className="geist-font text-[14px] font-regular flex gap-2 items-center justify-center text-[#16422E] dark:text-white  rounded-full p-1  cursor-pointer">
-                            Change Image <EditIcon/>
-                        </div>}                    
-                    </div>
-                    <div className='flex-1 flex flex-col items-start gap-1 h-full py-10 relative'>
-                        <div className='w-full relative flex gap-2 items-center justify-start text-[#16422E] dark:text-white'>
-                            <p className='geist-font text-[16px] font-light'>first name : </p>
-                            {!fnChange && <p className='geist-font text-[16px] font-regular'>{firstName}</p>}
-                            {!fnChange && <div onClick={()=>setFnChange(true)} className='cursor-pointer absolute right-10'><EditIcon/></div>}
-                            {fnChange && <input ref={fnRef} type="text" className="text-[#16422E] dark:text-[#FFFFFF]  px-1 w-[40%] border-0 border-b border-[#16422E] dark:border-white focus:outline-none focus:ring-0 focus:border-[#16422E] focus:dark:border-white bg-transparent"/>}
-                        </div>
-                        <div className='w-full relative flex gap-2 items-center justify-start text-[#16422E] dark:text-white'>
-                            <p className='geist-font text-[16px] font-light'>last name : </p>
-                            {!lnChange && <p className='geist-font text-[16px] font-regular'>{lastName}</p>}
-                            {!lnChange && <div onClick={()=>setLnChange(true)} className='cursor-pointer absolute right-10'><EditIcon/></div>}
-                            {lnChange && <input ref={lnRef} type="text" className="text-[#16422E] dark:text-[#FFFFFF]  px-1 w-[40%] border-0 border-b border-[#16422E] dark:border-white focus:outline-none focus:ring-0 focus:border-[#16422E] focus:dark:border-white bg-transparent"/>}
-                        </div>
-                        <div className='flex gap-2 items-center justify-start text-[#16422E] dark:text-white'>
-                            <p className='geist-font text-[16px] font-light'>email : </p>
-                            <p className='geist-font text-[16px] font-regular'>{email}</p>
-                        </div>
-                        <div className='flex gap-5 absolute bottom-0 self-end w-auto h-auto '>
-                            <div onClick={()=>{setShowProfile(false)}} className='cursor-pointer px-3 py-0.5 border rounded border-[#d1ffeb] dark:border-[#1E2C40] bg-[#d1ffeb] dark:bg-[#0c1423] flex justify-center items-center geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium '>Cancel</div>
-                            <div className='cursor-pointer px-3 py-0.5 border rounded border-[#16422E] dark:border-[#1E2C40] bg-[#16422E] dark:bg-[#0076FC] flex justify-center items-center geist-font text-[14px] tracking-tight text-white font-medium' onClick={doneChanges}>Done</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-
-        <div className={`flex px-2 py-2 h-screen w-screen gap-2`}>
-
-            <div className={`flex flex-col w-[13%] h-full z-20 gap-2 ${(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack || showProfile) ? 'pointer-events-none' : ''} `}>
-                
-                {(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack || showProfile) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
-
-                <div className='flex flex-col px-3 py-2 pb-5 items-center w-full h-2/3 bg-white border border-[#7AF8C1] dark:border-[#1E2C40] rounded  dark:bg-[#000000] dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C]'>
-                    <div className={`w-full flex justify-start p-3 z-20 `}>
-                        <a href="/" className=" w-[80px] sm:w-[101px] h-[40px] sm:h-[54px]">
-                            <img
-                                src="/logo.png"
-                                alt="My Logo"
-                                className="w-full h-full object-contain dark:hidden"
-                            />
-
-                            <img
-                                src="/logo-dark.png"
-                                alt="My Dark Logo"
-                                className="w-full h-full object-contain hidden dark:block"
-                            />
-                        </a>
-                    </div>
-                    
-                    <div className={`flex flex-col py-3 gap-2 w-full`}>
-                        <div onClick={()=>{setShowCreate(true)}} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
-                            <PlusIcon/>
-                            Create Call
-                        </div>
-                        <div onClick={()=>{setShowJoin(true)}} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] text-[#16422E] dark:text-white flex justify-start geist-font text-[14px] tracking-tight  font-medium'>
-                            <EnterIcon/>
-                            Join Call
-                        </div>
-                        <div onClick={()=>{setShowCalendar(true)}} className='items-center cursor-pointer border rounded px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
-                            <CalenderIcon/>
-                            Schedule 
-                        </div>
-                    </div>
-
-                    <div onClick={()=>setFeedback(true)} className='mt-auto items-center cursor-pointer border rounded w-full px-6 py-1 gap-5 border-[#7AF8C1] dark:border-[#1E2C40] bg-green-100 dark:bg-[#02060D] flex justify-start geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
-                        <FeedbackIcon/>
-                        Feedback
-                    </div>
-                </div>
-
-                <div onClick={()=>setShowProfile(true)} className='my-auto cursor-pointer hover:shadow-none hover:border-[#16422E] hover:dark:border-white w-full flex justify-end gap-3 px-5 py-2 items-center border-2 rounded-[200px] bg-white border-[#7AF8C1] dark:border-[#1E2C40]  dark:bg-[#000000] dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C]'>
-                    <p className='geist-font text-[16px] font-medium text-[#16422E] dark:text-white'>{name}</p>
-                    <div className='w-9 h-9 bg-black rounded-full object-cover content-center border border-[#7AF8C1] dark:border-[#1E2C40]'>
-                        <img src={img} alt="" className='w-full h-full rounded-full'/>
-                    </div>
-                </div>
-
-            </div>
-
-            <div className={`flex-1 h-full z-20 flex flex-col gap-2 ${(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack || showProfile) ? 'pointer-events-none' : ''}`}>
-
-                {(showCreate || showJoin || showCalendar || callDetail!==-1 || feedBack || showProfile) && (<div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/20 dark:bg-black/20 rounded-xl shadow-md pointer-events-none" />)}
-
-                <div className='flex w-full px-3 py-2  border border-[#7AF8C1] dark:border-[#1E2C40] bg-white dark:bg-[#000000] rounded dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C]'>
-                    <div className=" w-1/2 flex justify-start z-20 geist-font text-[20px]  text-[#16422E] dark:text-[#FFFFFF]">
-                        Welcome {name} !
-                    </div>
-                    <div className="w-1/2 justify-end z-20 self-center items-center flex text-[#16422E] dark:text-white dark:font-normal gap-5">
-                        
-                        <ThemeToggle text={true} bg={true}/>
-                        <div onClick={logout} className='items-center cursor-pointer border border-red-500 rounded px-3 py-1 gap-2  flex justify-start geist-font text-[14px] tracking-tight text-white bg-red-500 font-medium'>
-                            <LogoutIcon/>
-                            Log out
-                        </div>
-                    </div>
-                </div>
-
-                <div className='w-full h-full z-20 flex bg-white border border-[#7AF8C1] dark:border-[#1E2C40] dark:bg-[#000000] rounded dark:bg-[linear-gradient(307.82deg,_rgba(14,22,36,0.6)_45.74%,_rgba(30,44,64,0.6)_107.26%)] dark:shadow-[inset_0_0_2px_#23344C]'>
-                    <div className='w-[60%] h-full flex flex-col '>
-                        <div className='flex items-center justify-between w-full px-3 py-1.5'>
-                            <div className='geist-font text-[16px]  text-[#16422E] dark:text-[#FFFFFF]'>
-                                Previous Recorded Calls
-                            </div>
-                        </div>
-                        <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
-                        <div className='flex w-full h-auto'>
-                            <div className='w-[8%] py-1 text-sm pl-2 geist-font text-green-900 dark:text-gray-300'>Sr no.</div>
-                            <div className='w-[30%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Call Name</div>
-                            <div className='w-[30%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Call Id</div>
-                            <div className='w-[16%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Date</div>
-                            <div className='w-[16%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300'>Time</div>
-                        </div>
-                        <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
-                        {recordings.length===0 
-                        ? 
-                            <p className='flex items-center justify-center w-full h-full  z-20 geist-font text-3xl font-light text-[#16422E] dark:text-white'>
-                                No calls yet.
-                            </p>
-                        : 
-                            <div className='flex flex-col w-full h-full overflow-y-scroll scrollbar-none scroll-smooth no-scrollbar'>
-                                {recordings.map((call,index)=>{
-                                    return (<div key={index+1} className='flex flex-col w-full h-auto'>
-                                        <div onClick={() => showClips(call.clips, call.slug)} className={`flex w-full h-auto hover:dark:bg-gray-700 hover:bg-green-100 cursor-pointer`}>
-                                            <div className='w-[8%] py-1 text-sm pl-2 geist-font text-green-900 dark:text-gray-300'>{index+1}. </div>
-                                            <div className='w-[30%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.slug}</div>
-                                            <div className='w-[30%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.callId}</div>
-                                            <div className='w-[16%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.date}</div>
-                                            <div className='w-[16%] py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.time}</div>
-                                        </div>
-                                        <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
-                                    </div>)
-                                })}
-                            </div>
-                        }
-                    </div> 
-                    <div className='h-full border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40]'></div>
-                    <div className='flex flex-col flex-1'>
-
-                        <div className='flex items-center justify-between w-full px-3 py-1.5'>
-                            <div className='geist-font text-[16px]  text-[#16422E] dark:text-[#FFFFFF]'>
-                                {show ? 'Scheduled Calls' : 'Call History'}
-                            </div>
-                            <div onClick={()=>{setShow(x=>!x)}} className='items-center cursor-pointer hover:underline hover:text-[#31C585] hover:dark:text-[#0076FC] px-3 gap-2 flex justify-end geist-font text-[14px] tracking-tight text-[#16422E] dark:text-white font-medium'>
-                                {!show ? 'Scheduled Calls?' : 'Call History?'}    
-                            </div>
-                        </div>
-
-                        <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
-                        <div className='flex w-full h-auto'>
-                            <div className='w-[12%] py-1 text-sm px-2 geist-font text-green-900 dark:text-gray-300'>Sr no.</div>
-                            <div className={`${show ? 'w-[38%]' : 'w-[30%]'} py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300`}>Call Name</div>
-                            <div className={`${show ? 'w-[25%]' : 'w-[40%]'} py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300`}>{show ? 'Date' : 'Call Id'}</div>
-                            <div className={`${show ? 'w-[25%]' : 'w-[18%]'} py-1 text-sm border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300`}>{show ? 'Time' : 'Peers'}</div>
-                        </div>
-                        <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
-
-                        {show && scheduledCalls.length==0 && 
-                            <p className='flex items-center justify-center w-full h-full  z-20 geist-font text-3xl font-light text-[#16422E] dark:text-white'>
-                                No scheduled calls yet.
-                            </p>
-                        }
-                        {show && scheduledCalls.length>0 &&
-                            <div className='flex flex-col w-full h-full overflow-y-scroll scrollbar-none scroll-smooth no-scrollbar'>
-                                {scheduledCalls.map((call,index)=>{
-                                    const isPast = new Date(`${call.date} ${call.time}`) < new Date();
-                                    return (<div key={index+1} className='flex flex-col w-full h-auto'>
-                                        <div className={`flex w-full h-auto ${isPast && 'opacity-50'}`}>
-                                            <div className='w-[12%] py-1 text-[13px] px-2 geist-font text-center text-green-900 dark:text-gray-300 overflow-hidden'>{index+1}. </div>
-                                            <div className='w-[38%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.slug}</div>
-                                            <div className='w-[25%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.date}</div>
-                                            <div className='w-[25%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.time}</div>
-                                        </div>
-                                        <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
-                                    </div>)
-                                })}
-                            </div>
-                        }
-
-                        {!show && previousCalls.length==0 &&
-                            <p className='flex items-center justify-center w-full h-full  z-20 geist-font text-3xl font-light text-[#16422E] dark:text-white'>
-                                No previous calls yet.
-                            </p>
-                        }   
-                        {!show && previousCalls.length>0 &&
-                            <div className='flex flex-col w-full h-full overflow-y-scroll scrollbar-none scroll-smooth no-scrollbar'>
-                                {previousCalls.map((call,index)=>(
-                                    <div key={index+1} className='flex flex-col w-full h-auto hover:dark:bg-gray-700 hover:bg-green-100 cursor-pointer' onClick={()=>setCallDetail(index)}>
-                                        <div className='flex w-full h-auto'>
-                                            <div className='w-[12%] py-1 text-[13px] px-2 geist-font dark:text-gray-300 text-green-900  text-center overflow-hidden'>{index+1}.</div>
-                                            <div className='w-[30%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.slug}</div>
-                                            <div className='w-[40%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.callingId}</div>
-                                            <div className='w-[18%] py-1 text-[13px] border-l border-l-[#7AF8C1] dark:border-l-[#1E2C40] px-2 geist-font text-green-900 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis'>{call.peers}</div>
-                                        </div>
-                                        <div className='w-full border-t border-t-[#7AF8C1] dark:border-t-[#1E2C40]'/>
-                                    </div>
-                                ))}
-                            </div>
-                        }
-
-                    </div>
-                </div>
-            
             </div>
         </div>
-       
+
+
+               
     </div>
 } 
