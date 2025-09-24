@@ -9,6 +9,7 @@ import { getAuthCookie } from '../../../lib/set-auth-cookie';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    console.log('signup');
     console.log(body);
     const parsedBody = signupType.safeParse(body);
     if (!parsedBody.success) { 

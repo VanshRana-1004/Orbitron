@@ -1,15 +1,11 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { ThemeToggle } from "./components/theme-toggle/theme";
 import { signIn } from "next-auth/react";
 import XIcon from "./components/icons/x";
 import LinkedinIcon from "./components/icons/linkedin";
 import GithubIcon from "./components/icons/github";
-import CameraIcon from "./components/icons/camera";
-import RecordIcon from "./components/icons/record";
 import MsgIcon from "./components/icons/msg";
 import CloudIcon from "./components/icons/cloud";
-import LockIcon from "./components/icons/lock";
 import LayoutIcon from "./components/icons/layout";
 import ComputerIcon from "./components/icons/computer";
 import { useEffect,useState,useRef } from "react";
@@ -24,8 +20,6 @@ const points = [
 export default function Home() {
   const router = useRouter();
   const [width,setWidth]=useState<number>(1536);
-  const [height70,setHeight70]=useState<number>(0);
-  const [height90,setHeight90]=useState<number>(0);
 
   useEffect(()=>{
     const handleScreenResize=()=>{
@@ -34,24 +28,9 @@ export default function Home() {
     }
     handleScreenResize();
     window.addEventListener('resize',handleScreenResize);
-    const hgt90=(width*90)/100;
-    const hgt70=(width*70)/100;
-    setHeight70(height70=>(hgt70*9)/16)
-    setHeight90(height90=>(hgt90*9)/16)
     return ()=>{window.removeEventListener('resize',handleScreenResize)}
   },[])
 
-  const handleGoogleLogin = async () => {
-    try {
-        await signIn('google', {
-            callbackUrl: '/dashboard', 
-        });
-  
-    } catch (err) {
-        console.error("Unexpected error during sign-in:", err);
-        alert("Something went wrong.");
-    }
-  };
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(()=>{
@@ -63,11 +42,9 @@ export default function Home() {
     })
   },[activeIndex])
 
-  
-
   return (
 
-    <div className="w-full min-h-screen flex flex-col"
+    <div id='main' className="w-full min-h-screen flex flex-col"
     style={{
       scrollBehavior: "smooth",
       backgroundImage: `
@@ -83,18 +60,18 @@ export default function Home() {
 
         <div className={`flex justify-between items-center relative top-5 h-10 w-full ${width<800 ? 'px-3' : 'px-32'}`}>
 
-          <div className="flex items-center gap-2">
+          <div  className="flex items-center gap-2 cursor-default">
             <img src="carbon_shape-exclude.svg" alt="" className={`${width>768 ? '' : 'size-8'}`} />
             <div className={`poppins-medium ${width>768 ? 'text-[25px]' : 'text-[20px]'} tracking-[-4%]`}>Orbitron</div> 
           </div>
 
           {width>1024 && <div className="flex items-center gap-10 poppins-medium text-[#B6B8C3]  tracking-[-2%] text-[16px]">
-            <div>Features</div>
-            <div>How it works</div>
-            <div>Contact</div>
+            <a href={'#features'} className="hover:text-[#e8e8e8] cursor-pointer ">Features</a>
+            <a href={'#works'} className="hover:text-[#e8e8e8] cursor-pointer">How it works</a>
+            <a href={'#contact'} className="hover:text-[#e8e8e8] cursor-pointer">Contact</a>
           </div>}
 
-          <div className="bg-white text-black poppins-medium font-medium text-[16px] rounded-[65px] tracking-[2%] px-[18px] py-[6px]">Get Started</div>
+          <button onClick={()=>router.push('/login')} className="bg-white text-black poppins-medium font-medium text-[16px] rounded-[65px] tracking-[2%] px-[18px] py-[6px] cursor-pointer hover:bg-gray-200 transition-transform duration-150 active:scale-95" >Get Started</button>
 
         </div>
 
@@ -139,8 +116,8 @@ export default function Home() {
           </div>
           
           <div className="flex gap-[20px]">
-            <div className="text-[16px] poppins-medium font-medium bg-white text-black px-[24px] py-[16px] rounded-[100px]">Explore Now</div>
-            <div className="text-[16px] poppins-medium font-medium bg-black text-white px-[24px] py-[16px] rounded-[100px]">Demo Video</div>
+            <button onClick={()=>router.push('/login')} className="text-[16px] poppins-medium font-medium bg-white text-black px-[24px] py-[16px] rounded-[100px] cursor-pointer hover:bg-gray-200 transition-transform duration-150 active:scale-95">Explore Now</button>
+            <a href={'#demo'} className="text-[16px] poppins-medium font-medium bg-black text-white px-[24px] py-[16px] rounded-[100px] cursor-pointer hover:bg-zinc-900 transition-transform duration-150 active:scale-95">Demo Video</a>
           </div>
 
         </div>   
@@ -178,14 +155,14 @@ export default function Home() {
         ></div>
         
         <div
-          className={`absolute w-[500px] h-[500px] rounded-full z-0 top-1/2 ${width<768 && '-translate-y-80 -translate-x-80'}`}
+          className={`absolute w-[500px] h-[500px] rounded-full z-0 top-1/2 ${width<768 ? '-translate-y-80 -translate-x-80' : 'right-0 translate-x-48'}`}
           style={{
             background: `radial-gradient(circle, rgba(126, 91, 239, 0.4) 0%, rgba(166, 109, 246, 0.2) 60%, transparent 100%)`,
             filter: 'blur(100px)',
           }}
         ></div>
 
-        <div className="z-10 flex flex-col items-center justify-center gap-7">
+        <div id='demo' className="z-10 flex flex-col items-center justify-center gap-7">
           <p className={` ${width<768 ? 'text-[35px]' : 'text-[60px]'} leading-[60px] poppins-medium tracking-[-5%] items-center justify-center bg-[linear-gradient(92.22deg,rgba(255,255,255,0.4)_-6.68%,#FAF9F9_31.88%,#D1D1D1_61.39%,rgba(181,181,181,0.4)_89.88%)] bg-clip-text text-transparent poppins-medium `}>Demo Video</p>
           <div className={`${width<768 ? 'w-[90%]  p-[2px]' : 'w-[70%]  p-[5px]'} rounded-[10px] border border-zinc-900 bg-black `}
             style={{background: "radial-gradient(125% 125% at 50% 100%, #18181B 40%, #7E5BEF 100%)",aspectRatio: width>768 ? 16/9 : 13/9}}>
@@ -193,7 +170,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="z-10 flex flex-col items-center justify-center gap-7">
+        <div id='works' className="z-10 flex flex-col items-center justify-center gap-7">
           <p className={`${width<768 ? 'text-[35px]' : 'text-[60px]'} leading-[60px] poppins-medium tracking-[-5%] items-center justify-center bg-[linear-gradient(92.22deg,rgba(255,255,255,0.4)_-6.68%,#FAF9F9_31.88%,#D1D1D1_61.39%,rgba(181,181,181,0.4)_89.88%)] bg-clip-text text-transparent poppins-medium `}>How Orbitron Works</p>
           <div className={`relative ${width<1100 ? 'w-[90%] p-[2px] overflow-hidden' : 'w-[70%]  p-[5px]'} rounded-[10px] border border-zinc-900 `} 
           style={{
@@ -205,7 +182,7 @@ export default function Home() {
               : 'radial-gradient(125% 125% at 50% 100%, #7E5BEF 40%, #EF4444 100%)',
           }}>
               
-            <div  className={`flex ${width<1000 && 'flex-col'} bg-black rounded-[10px] w-full h-full px-10`}
+            <div  className={`flex ${width<1000 && 'flex-col'} bg-black rounded-[10px] w-full h-full px-10 ${width<768 ? 'py-5' : 'py-10'}`}
             style={{
                 backgroundColor: '#000000',
                 backgroundImage: `
@@ -216,10 +193,9 @@ export default function Home() {
                 imageRendering: 'pixelated',
               }}>
               
-              <div className={`flex  gap-16  rounded-l-[10px] ${width<768 ? 'w-full py-8 h-1/2' : width<1000 ? 'w-full h-1/2 pt-16 py-8' : 'w-1/2 h-full px-16 pr-5 py-24'}`}
-              >
+              <div className={`flex  gap-16  rounded-l-[10px] ${width<768 ? 'w-full py-8 h-1/2' : width<1000 ? 'w-full h-1/2 pt-16 py-8' : 'w-1/2 h-full px-16 pr-5 py-24'}`}>
 
-                <div className={`flex flex-col w-full h-full ${width<1000 ? 'gap-5' : 'gap-12'} `}>
+                <div className={`flex flex-col w-full h-full gap-5 `}>
                   <div className={`flex flex-col justify-end gap-2   items-start`}>
                     <p className={`${width<600 ? 'text-5xl' : 'text-7xl'} poppins-semibold font-semibold ${activeIndex==0 ? 'text-[#EC4899]' : activeIndex==1 ? 'text-[#EAB308]' : 'text-[#EF4444]'}`}>0{activeIndex+1}</p>
                     <p className={`poppins-medium tracking-[-5%]  text-[#d5cfcf] text-wrap w-full ${width<768 ? 'text-[30px]' : 'text-[40px]' }`}>{points[activeIndex]?.heading}</p>
@@ -229,7 +205,7 @@ export default function Home() {
             
               </div>
                 
-              <div className={`flex flex-col rounded-r-[10px] flex-1 h-full p-8 justify-center`}>
+              <div className={`flex flex-col rounded-r-[10px] flex-1 h-full p-6 justify-center`}>
                 <img key={activeIndex} src={points[activeIndex]?.img} style={{ opacity: 1 }} alt="corresponding" className={`border ${activeIndex==0 ? 'border-[#EC4899]' : activeIndex==1 ? 'border-[#EAB308]' : 'border-[#bc1f1f]'}  object-cover ${width<1100 ? 'h-[80%]' : 'h-[50%]'} transition-opacity duration-1000 w-[100%] rounded-[10px] bg-zinc-900`}></img>
               </div>
 
@@ -259,7 +235,7 @@ export default function Home() {
               <ArrowRight className="w-5 h-5 text-white" />
             </div>
               
-            <div className="flex absolute gap-2 bottom-5 left-1/2 -translate-x-1/2">
+            <div className={`flex absolute gap-2 bottom-5 left-1/2 -translate-x-1/2 `}>
               <div className={`p-1.5 rounded-full ${activeIndex==0 ? 'bg-gray-300' : 'bg-white/20'}`}></div>
               <div className={`p-1.5 rounded-full ${activeIndex==1 ? 'bg-gray-300' : 'bg-white/20'}`}></div>
               <div className={`p-1.5 rounded-full ${activeIndex==2 ? 'bg-gray-300' : 'bg-white/20'}`}></div>
@@ -268,7 +244,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="z-10 flex flex-col items-center justify-center gap-7">
+        <div id='features' className="z-10 flex flex-col items-center justify-center gap-7">
           <p className={`${width<768 ? 'text-[35px]' : 'text-[60px]'} leading-[60px] poppins-medium tracking-[-5%] items-center justify-center bg-[linear-gradient(92.22deg,rgba(255,255,255,0.4)_-6.68%,#FAF9F9_31.88%,#D1D1D1_61.39%,rgba(181,181,181,0.4)_89.88%)] bg-clip-text text-transparent poppins-medium`}>Features</p>
           <div className={`flex flex-col ${width>1200 ? 'w-[75%]' : 'w-[90%] h-auto'} p-[10px] rounded-[10px] gap-[10px] border border-zinc-800 bg-[#7E5BEF]/20 backdrop-blur-5xl shadow-xl overflow-hidden`}
             style={{aspectRatio:width>1200 ? 16/9 : 0}}
@@ -321,7 +297,7 @@ export default function Home() {
                   <div className="flex flex-col gap-2 items-start">
                     <div className="flex items-center justify-center gap-2">
                       <div className="p-2.5 h-5 w-5 rounded-full bg-[#7E5BEF]"></div>
-                      <div className="poppins-semibold text-[30px] text-[#B3ABAB]">REC</div>
+                      <div className="poppins-semibold text-[30px] text-[#7E5BEF]">REC</div>
                     </div>
                     <div className={`poppins-medium tracking-[-5%] text-[#B3ABAB] leading-none ${width<768 ? 'text-[20px]' : 'text-[28px]'}`}>Automatic Session Recording</div>
                   </div>
@@ -418,7 +394,7 @@ export default function Home() {
       </div>
       
       <div
-        className={`w-full h-auto pt-28 gap-28 flex flex-col items-center bg-black ${width<768 ? 'px-2' : 'px-32' }`}
+        className={`w-full h-auto pt-28 gap-28 flex flex-col items-center bg-black ${width<768 ? 'px-2' : 'px-16' }`}
         style={{
           backgroundImage: `
             radial-gradient(ellipse 80% 60% at 50% 0%, rgba(126, 91, 239, 0.25), transparent 70%),
@@ -437,16 +413,16 @@ export default function Home() {
             <p className={`font-regular poppins-medium ${width>768 ? 'text-[45px] text-gray-300' : 'text-[22px] text-gray-400'} tracking-[-4%]`}>Conversations That Last Forever</p>
             <p className={`font-regular poppins-medium ${width>768 ? 'text-[25px] text-gray-400' : 'text-[19px] text-gray-500'} tracking-[-4%]`}>Connect. Capture. Replay.</p>
           </div>
-          <div className="text-[16px] poppins-medium font-medium bg-white text-black px-[24px] py-[16px] rounded-[100px]">Try Now</div>
+          <button onClick={()=>router.push('/login')} className="text-[16px] poppins-medium font-medium bg-white hover:bg-gray-200 cursor-pointer text-black px-[24px] py-[12px] rounded-[100px] transition-transform duration-150 active:scale-95">Try Now</button>
         </div>
 
-        <div className={`flex flex-col ${width<768 ? 'p-8 px-5' : 'p-16'} flex-1 border-y border-r border-l border-b-0 border-zinc-900 rounded-t-xl w-full bg-black gap-10 `}>
+        <div className={`flex flex-col ${width<768 ? 'p-8 px-5' : 'p-12'} flex-1 border-y border-r border-l border-b-0 border-zinc-800 rounded-t-xl w-full bg-black gap-10 `}>
           <div className={`flex justify-between ${width<768 && 'flex-col gap-4'}`}>
             <div className={`flex flex-col gap-2 ${width<768 && 'items-center gap-4'}`}>
-              <div className="flex items-center justify-start gap-2">
+              <a href={'#main'} className="flex items-center justify-start gap-2 cursor-pointer">
                 <img src="carbon_shape-exclude.svg" alt="" className={`${width>768 ? '' : 'size-8'}`} />
-                <div className={`poppins-medium ${width>768 ? 'text-[25px]' : 'text-[20px]'} tracking-[-4%]`}>Orbitron</div> 
-              </div>
+                <div className={`poppins-medium ${width>768 ? 'text-[25px]' : 'text-[20px]'} tracking-[-4%] `}>Orbitron</div> 
+              </a>
               <div className={`flex flex-col leading-1 ${width<768 && 'items-center'}`}>
                 <p className={`poppins-medium font-normal text-gray-200 ${width>768 ? 'text-[19px]' : 'text-[15px]'}`}>Get rid of screen recording!</p>
                 <p className="poppins-regular font-normal text-[15px] text-gray-500 text-wrap text-center">v0 supports up to 5 peers per room. More coming soon.</p>
@@ -456,19 +432,19 @@ export default function Home() {
             <div className={`flex flex-col gap-2 ${width<768 && 'items-center'}`}>
               <div className={`poppins-medium font-medium text-gray-200 ${width>768 ? 'text-[19px]' : 'text-[15px]'}`}>Product</div>
               <div className={`flex ${width<768 ? 'gap-5  -translate-y-2' : 'gap-10'}`}>
-                <div className="poppins-regular font-normal text-gray-500 text-[15px] ">How it Works</div>
-                <div className="poppins-regular font-normal text-gray-500 text-[15px] ">Features</div>
-                <div className="poppins-regular font-normal text-gray-500 text-[15px] ">Demo Video</div>
+                <a href={'#works'} className="poppins-regular font-normal text-gray-500 text-[15px] hover:text-[#e8e8e8] cursor-pointer">How it Works</a>
+                <a href={'#features'} className="poppins-regular font-normal text-gray-500 text-[15px] hover:text-[#e8e8e8] cursor-pointer">Features</a>
+                <a href={'#demo'} className="poppins-regular font-normal text-gray-500 text-[15px] hover:text-[#e8e8e8] cursor-pointer">Demo Video</a>
               </div>
             </div> 
 
           </div>
-          <div className="flex gap-8 self-center items-center">
-              <XIcon/>
-              <LinkedinIcon/>
-              <GithubIcon/>
+          <div id={'contact'} className="flex gap-8 self-center items-center">
+              <a href="https://x.com/Rana2K5" target="_blank" rel="noopener noreferrer" className="cursor-pointer border border-transparent p-1 hover:bg-zinc-950 hover:border-zinc-800 rounded"><XIcon/></a>
+              <a href="https://www.linkedin.com/in/vansh-rana-a8b528261/" target="_blank" rel="noopener noreferrer" className="cursor-pointer border border-transparent p-1 hover:bg-zinc-950 hover:border-zinc-800 rounded"><LinkedinIcon/></a>
+              <a href="https://github.com/VanshRana-1004" target="_blank" rel="noopener noreferrer" className="cursor-pointer border border-transparent p-1 hover:bg-zinc-950 hover:border-zinc-800 rounded"><GithubIcon/></a>
           </div>
-          <div className="border-b w-[70%] self-center border-zinc-900"></div>
+          <div className="border-b w-[70%] self-center border-zinc-800"></div>
           <p className="poppins-medium font-normal text-gray-500 text-[15px] self-center text-wrap text-center">© 2025 Orbitron. Made with ❤️ for everyone, everywhere.</p>
         </div>
 

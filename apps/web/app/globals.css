@@ -10,6 +10,9 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
 
 .audiowide-regular {
   font-family: "Audiowide", sans-serif;

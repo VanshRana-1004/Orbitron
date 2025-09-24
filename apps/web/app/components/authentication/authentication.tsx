@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from 'next-auth/react';
 import OpenEye  from "../icons/eye";
 import  CloseEye from "../icons/closeeye";
-import { ThemeToggle } from "../theme-toggle/theme";
+import CrossIcon from "../icons/cross"; 
 import { useSocketStore } from 'app/store/socket-connection';
 
 
@@ -16,6 +16,8 @@ export function Authentication() {
     const firstNameRef=useRef<HTMLInputElement>(null);
     const lastNameRef=useRef<HTMLInputElement>(null);
     const router=useRouter();
+    const [width,setWidth]=useState<number>(1500);
+
 
     const [emailError,setEmailError]=useState<string | null>(null);
     const [passwordError,setPasswordError]=useState<string | null>(null);
@@ -49,7 +51,7 @@ export function Authentication() {
 
     const [isRedirecting, setIsRedirecting] = useState(false);
 
-    function handle(e: React.FormEvent<HTMLButtonElement>) {
+    async function handle(e: React.FormEvent<HTMLButtonElement>) {
         setEmailError(null);
         setPasswordError(null);
         setFirstNameError(null);
@@ -59,11 +61,12 @@ export function Authentication() {
         
         const email=emailRef.current?.value;
         const firstName=firstNameRef.current?.value;
+        console.log('firstName : ',firstName);
         const lastName=lastNameRef.current?.value;
         const password=passwordRef.current?.value;
         
         if(sign){
-            axios.post('/api/auth/login', {
+            await axios.post('/api/auth/login', {
                 email: email,
                 password: password
             }, { withCredentials: true })
@@ -94,7 +97,8 @@ export function Authentication() {
             })
         }
         else {
-            axios.post('/api/auth/signup',{
+            console.log(firstName, ' ', lastName, ' ', email, ' ', password);
+            await axios.post('/api/auth/signup',{
                 firstName: firstName,
                 lastName: lastName,
                 email: email,
@@ -145,34 +149,134 @@ export function Authentication() {
         }
     };
 
+    useEffect(()=>{
+        const handleScreenResize=()=>{
+        const wdth=window.innerWidth;
+        setWidth(wdth);
+        }
+        handleScreenResize();
+        window.addEventListener('resize',handleScreenResize);
+        return ()=>{window.removeEventListener('resize',handleScreenResize)}
+    },[])
+
     return (
-    <div className="min-h-screen flex items-center justify-center bg-white bg-[radial-gradient(circle_at_center,_#A0FFD6_0%,_#F6FFFB_65%)] px-4 sm:px-6 dark:bg-[#00040B] dark:bg-[url('/dark-bg.png')] dark:bg-cover dark:bg-center dark:bg-no-repeat relative">
+    <div className="min-h-screen w-screen overflow-hidden relative flex items-center justify-center"
+    style={{
+      scrollBehavior: "smooth",
+      backgroundImage: `
+        repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(75, 85, 99, 0.08) 19px, rgba(75, 85, 99, 0.08) 20px, transparent 20px, transparent 39px, rgba(75, 85, 99, 0.08) 39px, rgba(75, 85, 99, 0.08) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(75, 85, 99, 0.08) 19px, rgba(75, 85, 99, 0.08) 20px, transparent 20px, transparent 39px, rgba(75, 85, 99, 0.08) 39px, rgba(75, 85, 99, 0.08) 40px),
+        radial-gradient(circle at 20px 20px, rgba(55, 65, 81, 0.12) 2px, transparent 2px),
+        radial-gradient(circle at 40px 40px, rgba(55, 65, 81, 0.12) 2px, transparent 2px)
+      `,
+      backgroundSize: '40px 40px, 40px 40px, 40px 40px, 40px 40px',
+    }}>
         
-        <div className="top-0 left-0 absolute w-full h-full z-10 pointer-events-none
-            [background-image:linear-gradient(to_right,#CDFCE7_1px,transparent_1px),linear-gradient(to_bottom,#CDFCE7_1px,transparent_1px)]
-            [background-size:60px_60px] dark:hidden"/>
+        <div
+          className="absolute left-1/2 -translate-x-1/2 -bottom-[250px] w-full z-0"
+          style={{
+            height: '500px',
+            background: 'linear-gradient(180deg, #7E5BEF 0%, #7E5BEF 100%)',
+            filter: 'blur(125px)',
+            borderRadius: '100%',
+          }}
+        ></div>
 
-        <div className="fixed w-full top-5 left-0 flex justify-between px-52 z-20 items-center">
-            <a href="/" className=" w-[80px] sm:w-[101px] h-[40px] sm:h-[54px]">
-                <img
-                    src="/logo.png"
-                    alt="My Logo"
-                    className="w-full h-full object-contain dark:hidden"
+        <div className={`${width>768 ? 'w-[400px] py-8 px-8' : 'w-[95%] px-5 py-8'} h-auto  rounded-[10px] bg-black/40
+            backdrop-blur-lg 
+            border border-zinc-600
+            shadow-[0_8px_32px_rgba(31,38,135,0.1)]
+            flex flex-col  gap-4`}>
+            
+            <div className="absolute top-3 right-3 rounded-full p-1 hover:bg-zinc-800 cursor-pointer" onClick={()=>router.push('/')}><CrossIcon/></div>
+
+            <p className="self-center poppins-regular text-[25px] tracking-[-5%]">Welcome to Orbitron</p>
+            {!sign && 
+                <div>
+                    <p className={`${ width>768 ? 'poppins-thin tracking-none' : 'poppins-light tracking-[-5%]'} text-[15px] `}>First name (min 3 characters)</p>
+                    <input
+                        ref={firstNameRef}
+                        type="text"
+                        placeholder="Enter first name"
+                        className="w-full px-3 py-2 rounded-[5px] text-[14px] bg-transparent border border-zinc-500 focus-within:ring-1 focus-within:ring-white"
+                    />
+                </div>}
+            {!sign && 
+                <div>
+                    <p className={`${ width>768 ? 'poppins-thin tracking-none' : 'poppins-light tracking-[-5%]'} text-[15px] `}>Last name (min 3 characters)</p>
+                    <input
+                        ref={lastNameRef}
+                        type="text"
+                        placeholder="Enter last name"
+                        className="w-full px-3 py-2 border border-zinc-500 rounded-[5px] text-[14px] bg-transparent focus-within:ring-1 focus-within:ring-white"
+                    />
+                </div>
+            }
+            <div>
+                <p className={`${ width>768 ? 'poppins-thin tracking-none' : 'poppins-light tracking-[-5%]'} text-[15px] `}>Email</p>
+                <input ref={emailRef} type="email" placeholder="Enter your email address"
+                    className="w-full px-3 py-2 border border-zinc-500 rounded-[5px] text-[14px] bg-transparent focus-within:ring-1 focus-within:ring-white"
                 />
+            </div>
+            <div>
+                <p className={`${ width>768 ? 'poppins-thin tracking-none' : 'poppins-light tracking-[-5%]'} text-[15px] `}>Password (min 6 chars a-z & 0-9 & special)</p>
+                {/* <input type="text" /> */}
+                <div className="group flex items-center w-full px-3 py-2 border border-zinc-500 rounded-[5px] text-[14px] bg-transparent focus-within:ring-1 focus-within:ring-white">
+                    <input
+                        ref={passwordRef}
+                        type={type}
+                        placeholder="Enter your password"
+                        className=" w-full rounded-[5px] text-[14px] bg-transparent font-inter focus:outline-none"
+                    />
+                    {type === 'password' ? (
+                        <CloseEye onClick={() => setType("text")} className="stroke-zinc-400  cursor-pointer" color="#FFFFFF" width="24px" height="24px" />
+                        ) : (
+                        <OpenEye onClick={() => setType("password")} className="stroke-zinc-400  cursor-pointer" color="#FFFFFF" width="24px" height="24px" />
+                    )}
+                </div>
+            </div>
 
-                <img
-                    src="/logo-dark.png"
-                    alt="My Dark Logo"
-                    className="w-full h-full object-contain hidden dark:block"
-                />
-            </a>
+            {(error || emailError || passwordError || firstNameError || lastNameError)  && <div className="h-auto flex flex-col gap-0">
+                {[error, emailError, passwordError, firstNameError, lastNameError].filter(Boolean).map((msg, i) => (
+                    <p key={i} className="text-red-600 text-[12px] mt-1 font-inter text-center">{msg}</p>
+                ))}   
+            </div>  }   
+                    
+            <button className={`bg-[#7E5BEF] text-white rounded-[10px] w-[80%] px-5 py-1.5 self-center text-[16px] mt-2 poppins-regular transition-transform duration-150 active:scale-95`} onClick={handle}>{sign ? 'Log In' : 'Sign Up'}</button>        
 
-            <ThemeToggle text={true} bg={false}/>
+            <div className="flex items-center gap-2 justify-center">
+                <div className={`border-b ${ width>768 ? 'border-b-zinc-400' : 'border-b-zinc-600'} w-1/2`}></div>
+                <p className="poppins-regular text-[18px]">or</p>
+                <div className={`border-b ${ width>768 ? 'border-b-zinc-400' : 'border-b-zinc-600'} w-1/2`}></div>
+            </div>
+
+            <div onClick={handleGoogleLogin} className={`cursor-pointer transition-transform duration-150 active:scale-95 self-center w-[80%] px-3 py-1.5 rounded-[10px] gap-2 border border-zinc-800 bg-white text-black flex items-center justify-center`}>
+                <img src="google.png" alt="" className="size-5"/>
+                <p className="poppins-medium text-[15px] tracking-[-5%]">Continue with Google</p>
+            </div>
+            
+            {sign 
+                ? 
+              <p className="self-center poppins-medium text-[15px] tracking-[-5%]">
+                Don’t have an account?{' '}
+                <a href="/signup" className="poppins-medium text-[15px] tracking-[-5%] hover:underline hover:text-blue-400 cursor-pointer">Sign Up</a>
+              </p> 
+                : 
+              <p className="self-center poppins-medium text-[15px] tracking-[-5%]">
+                Already have an account?{' '}
+                <a href="/login" className="poppins-medium text-[15px] tracking-[-5%] hover:underline hover:text-blue-400 cursor-pointer">Login</a>
+              </p>
+            }
 
         </div>
 
-        <div className="relative border z-20 h-fit border-[hsl(154,90%,73%)] bg-white backdrop-blur-[53.2px] shadow-[inset_0_0_10px_rgba(122,248,193,0.2)] rounded-lg px-5 sm:px-[43px] py-10 w-full max-w-sm flex flex-col items-center
-        dark:border-white/5 dark:bg-white/5 dark:backdrop-blur-[50px] dark:before:content-[''] dark:before:absolute dark:before:inset-0 dark:before:rounded-xl dark:before:shadow-[inset_0_0_50px_rgba(10,20,36,0.25)] overflow-hidden dark:before:pointer-events-none">
+        
+    </div>
+    );
+}  
+
+{/* <div className="relative border z-20 h-fit  bg-black  rounded-lg px-5 sm:px-[43px] py-10 w-full max-w-sm flex flex-col items-center
+         overflow-hidden dark:before:pointer-events-none">
         
             <div className="absolute top-2 right-2">
                 <a className="text-[#2dbc7b] hover:text-[#16422E] dark:text-gray-300 dark:hover:text-white" href="/">
@@ -314,7 +418,4 @@ export function Authentication() {
                 </>
                 )}
             </p>
-        </div>
-    </div>
-    );
-}  
+        </div> */}
