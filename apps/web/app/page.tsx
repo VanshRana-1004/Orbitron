@@ -21,6 +21,7 @@ const points = [
 export default function Home() {
   const router = useRouter();
   const [width,setWidth]=useState<number>(1536);
+  const [showOptions,setShowOptions]=useState<boolean>(false);
 
   useEffect(()=>{
     const handleScreenResize=()=>{
@@ -44,7 +45,6 @@ export default function Home() {
   },[activeIndex])
 
   return (
-
     <div id='main' className="w-full min-h-screen flex flex-col"
     style={{
       scrollBehavior: "smooth",
@@ -76,7 +76,25 @@ export default function Home() {
             ? 
               <button onClick={()=>router.push('/login')} className={`bg-white text-black poppins-medium font-medium ${width>768 ? 'text-[16px]' : 'text-[13px]'} rounded-[65px] tracking-[2%] px-[18px] py-[6px] cursor-pointer hover:bg-gray-200 transition-transform duration-150 active:scale-95`}  >Get Started</button>
             :
-              <BarIcon/>
+              <div className="flex flex-col">
+                <div onClick={()=>setShowOptions(showOptions=>!showOptions)} className="cursor-pointer"><BarIcon/></div>
+                {showOptions && 
+                  <div className={`flex flex-col rounded-sm absolute top-full z-10 bg-black border border-zinc-800/90 -translate-x-4 h-auto w-40 right-0 `}>
+                    <a href={'#works'} onClick={()=>setShowOptions(false)} className='items-center px-3 py-1.5 hover:bg-zinc-800 cursor-pointer poppins-regular text-[14px] text-zinc-300/70  flex gap-3'>
+                      How it works
+                    </a>
+                    <a href={'#features'} onClick={()=>setShowOptions(false)} className='items-center px-3 py-1.5 hover:bg-zinc-800 cursor-pointer poppins-regular text-[14px] text-zinc-300/70 border-t border-zinc-800/90 flex gap-3'>
+                      Features
+                    </a>
+                    <a href={'#contact'} onClick={()=>setShowOptions(false)} className='items-center px-3 py-1.5 hover:bg-zinc-800 cursor-pointer poppins-regular text-[14px] text-zinc-300/70 border-t border-zinc-800/90 flex gap-3'>
+                      Contact
+                    </a>
+                    <div onClick={()=>router.push('/login')} className='items-center px-3 py-1.5 hover:bg-zinc-800 cursor-pointer poppins-regular text-[14px] text-zinc-300/70 border-t border-zinc-800/90 flex gap-3'>
+                      Get Started
+                    </div>
+                  </div>
+                }
+              </div>
           }
 
         </div>

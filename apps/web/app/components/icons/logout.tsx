@@ -1,33 +1,5 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import { useTheme } from "next-themes"; 
-
 export default function LogoutIcon(){
-  const [mounted, setMounted] = useState(false);
-  const { theme } = useTheme(); 
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null; 
-
-  return (
-    <div className="flex">
-        {theme === 'light'
-        ? <Logout stroke={"#FFFFFF"} />
-        : <Logout stroke={"#FFFFFF"} />}
-    </div>      
-  );
-}
-
-interface props {
-    stroke : string
-}
-function Logout(props : props){
-    return <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill={props.stroke} height="20px" width="20px">
-        <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z" clipRule="evenodd" />
-        <path fillRule="evenodd" d="M6 10a.75.75 0 0 1 .75-.75h9.546l-1.048-.943a.75.75 0 1 1 1.004-1.114l2.5 2.25a.75.75 0 0 1 0 1.114l-2.5 2.25a.75.75 0 1 1-1.004-1.114l1.048-.943H6.75A.75.75 0 0 1 6 10Z" clipRule="evenodd" />
-    </svg>
+  return <svg width="18px" height="18px" strokeWidth="1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#D4D4D8B2"><path d="M12 12H19M19 12L16 15M19 12L16 9" stroke="#D4D4D8B2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M19 6V5C19 3.89543 18.1046 3 17 3H7C5.89543 3 5 3.89543 5 5V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V18" stroke="#D4D4D8B2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
 }
