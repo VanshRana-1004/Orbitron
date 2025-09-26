@@ -6,6 +6,7 @@ interface CallRecording {
   slug : string;
   date : string;
   time : string;
+  peers : {img : string, name : string, email : string}[];
   clips: { url: string; roomId: string; clipNum: string; public_id: string }[];
 }
 

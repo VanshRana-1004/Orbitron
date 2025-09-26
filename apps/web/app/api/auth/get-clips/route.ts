@@ -24,6 +24,11 @@ async function getClipsByUserId(userId: string) {
     recorded: boolean;
     date : string;
     time : string;
+    peers : {
+      img : string;
+      name : string;
+      email : string
+    }[]; 
     clips: {
       url: string;
       roomId: string;
@@ -80,12 +85,41 @@ async function getClipsByUserId(userId: string) {
         };
       });
       
+      const res=await prismaClient.call.findFirst({
+        where : {
+          id : Number(call.id)
+        },
+        include :{
+          callUserTimes : {
+            include : {
+              user : true
+            }
+          }
+        }
+      })
+      
+      const peers : {img : string, name : string, email : string}[]=[];
+      if (res?.callUserTimes) {
+        for (const cut of res.callUserTimes) {
+          if (cut.user) {
+            peers.push({
+              img: cut.user.profileImage ?? '',
+              name: cut.user.firstName+' '+cut.user.lastName,
+              email: cut.user.email,
+            });
+          }
+        }
+      }
+      
+      console.log('[peers data] : ',peers);
+
       finalResult.push({
         callId: call.callingId,
         date : call.date,
         time : call.startTime,
         slug : call.slug,
         recorded: call.recorded,
+        peers,  
         clips,
       });
     }

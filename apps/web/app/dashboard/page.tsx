@@ -16,6 +16,8 @@ import { useCurrentVideoStore } from 'app/store/current-video';
 import ScrollTop from 'app/components/icons/scrollTop';
 import SearchIcon from 'app/components/icons/search';
 import SettingIcon from 'app/components/icons/setting';
+import DotsIcon from 'app/components/icons/dots';
+
 const SERVER_URL = 'http://localhost:8080'; 
 
 interface User{
@@ -31,6 +33,7 @@ interface Clips {
   recorded: boolean;
   date : string;
   time : string;
+  peers : {img : string, name : string, email : string}[];
   clips: {
     url: string;
     roomId: string;
@@ -94,14 +97,13 @@ export default  function Dashboard() {
     const [preview, setPreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [selectedFile,setSelectedFile]=useState<File | null>(null);
-    const [search,setSearch]=useState<boolean>(false);
 
     const [width,setWidth]=useState<number>(1536);
     const [showButton, setShowButton] = useState(false);
     const [showDetail,setShowDetail]=useState(false);
-    const searchRef=useRef<HTMLInputElement>(null);
     const [searching,setSearching]=useState<boolean>(false);
-    const [searchedText,setSearchedText]=useState<string>('');
+    const [searchText,setSearchText]=useState<string>('');
+    const [search,setSearch]=useState<boolean>(false);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -356,17 +358,9 @@ export default  function Dashboard() {
         },500);
     }
 
-    function searchSession(){
-        if(searchRef.current && searchRef.current.value.length==0) return;
-        const trimmed = searchRef.current?.value.trim();
-        if(trimmed=='') return;
-        else{
-            setSearch(false);
-            setSearching(true);
-            setSearchedText(trimmed ?? '');
-
-        }
-    }
+    const filteredRecordings = recordings.filter((session) =>
+        session.slug.toLowerCase().includes(searchText.toLowerCase())
+    );
 
     return <div id={'main'} onClick={()=>{
             if(showDetail){
@@ -385,14 +379,14 @@ export default  function Dashboard() {
     }}>
 
         <div className={`relative z-10  w-full  ${width>768 ? 'px-6 py-2' : 'px-3 py-3'} flex justify-between items-center 
-            ${(showProfile || feedBack || showCreate || showJoin || search) && 'pointer-events-none'}`}>
+            ${(showProfile || feedBack || showCreate || showJoin || callDetail!==-1) && 'pointer-events-none'}`}>
             <div  className="flex items-center gap-2 cursor-pointer" onClick={()=>router.push('/')}>
                 <img src="carbon_shape-exclude.svg" alt="" className={`${width>768 ? '' : 'size-8'}`} />
                 <div className={`poppins-medium ${width>768 ? 'text-[25px]' : 'text-[20px]'} tracking-[-4%]`}>Orbitron</div> 
             </div>
             <div className='flex flex-col gap-0 justify-end'>
                 <div className='flex gap-0 items-center justify-end'>
-                    {width>600 && <div onClick={()=>setShowDetail(showDetail=>!showDetail)} className='cursor-pointer border px-4 pl-5 py-1.5 translate-x-2.5 border-zinc-800 bg-violet-500/80 hover:bg-violet-500 text-white text-[14px] poppins-medium rounded-l-full z-0 transition-transform duration-150 active:scale-95'>{firstName + ' ' + lastName}</div>}
+                    {width>600 && <div onClick={()=>setShowDetail(showDetail=>!showDetail)} className='cursor-pointer border px-4 pl-5 py-1.5 translate-x-2.5 border-zinc-800/90 bg-violet-500/80 hover:bg-violet-500 text-white text-[14px] poppins-medium rounded-l-full z-0 transition-transform duration-150 active:scale-95'>{firstName + ' ' + lastName}</div>}
                     <img  onClick={()=>setShowDetail(showDetail=>!showDetail)} src={img} alt=""  className={`cursor-pointer rounded-full z-10 ${width>768 ? 'size-11' : 'size-9'} border border-violet-500`}/>
                 </div>
                 {showDetail && <div className={`flex flex-col rounded-sm absolute top-full z-10 bg-black border border-zinc-800/90 ${width>768 ? '-translate-y-1 -translate-x-8' : ' -translate-x-4 -translate-y-2'} h-auto w-40 right-0 `}>
@@ -440,7 +434,7 @@ export default  function Dashboard() {
           }}
         ></div>
         
-        {showButton && <a href={'#main'} className='fixed z-20 bottom-5 right-5 bg-black/20 border-white/40 p-1 rounded-full cursor-pointer hover:bg-black/60 transition-transform duration-150 active:scale-95'>
+        {showButton && <a href={'#main'} className='fixed z-20 bottom-12 right-5 bg-black/20 border-white/40 p-1 rounded-full cursor-pointer hover:bg-black/60 transition-transform duration-150 active:scale-95'>
             <ScrollTop/>
         </a>}
 
@@ -582,24 +576,25 @@ export default  function Dashboard() {
             </div>
         }
 
-        {search 
-            && 
-            <div className={`${width>768 ? 'w-[500px]' : width>600 ? 'w-[75%]' : 'w-[87%]'} gap-2 flex flex-col p-3 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black border border-zinc-800 rounded-md z-50`}>
-                <div className={`flex justify-between items-center`}>
-                    <p className={` ${width>=900 ? 'text-[18px]' : width>790 ? 'text-[16px]' : 'text-[14px]'} poppins-medium tracking-[-5%] items-center justify-center bg-[linear-gradient(92.22deg,rgba(255,255,255,0.4)_-6.68%,#FAF9F9_31.88%,#D1D1D1_61.39%,rgba(181,181,181,0.4)_89.88%)] bg-clip-text text-transparent poppins-medium `}>Search Recorded Sessions </p>
-                    <div className="top-3 right-3 rounded-full p-1 hover:bg-zinc-800 cursor-pointer" onClick={()=>{
-                        setSearch(false)
-                        if(searchRef.current) searchRef.current.value='';
-                    }}><CrossIcon/></div>
+        {callDetail!==-1 
+            &&
+            <div className={`${width>768 ? 'min-w-80' : width>600 ? 'min-w-[60%]' : 'min-w-[85%]'} px-5 gap-1 flex flex-col p-2 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black border border-zinc-800 rounded-md z-50`}>
+                <div className='flex justify-between items-center border-b border-b-zinc-800 py-1'>
+                    <p  className={` ${width>=900 ? 'text-[18px]' : width>790 ? 'text-[16px]' : 'text-[14px]'} poppins-medium tracking-[-5%] items-center justify-center bg-[linear-gradient(92.22deg,rgba(255,255,255,0.4)_-6.68%,#FAF9F9_31.88%,#D1D1D1_61.39%,rgba(181,181,181,0.4)_89.88%)] bg-clip-text text-transparent poppins-medium `}>Session Detail </p>
+                    <div onClick={()=>setCallDetail(-1)} className='rounded-full p-0.5 cursor-pointer self-end hover:bg-zinc-800'><CrossIcon/></div>
                 </div>
-                <div className='border-b border-b-zinc-800'></div>
-                <input ref={searchRef} placeholder='Enter Call Name' type="text" className='poppins-regular text-[15px] text-zinc-400 placeholder:text-zinc-500 px-2 py-1 rounded-md outline-none bg-black border border-zinc-800 flex-1 w-full'/>
-                <div className='flex items-center justify-end gap-3'>
-                    <div onClick={()=>{
-                        setSearch(false)
-                        if(searchRef.current) searchRef.current.value='';
-                    }} className='bg-zinc-800 cursor-pointer hover:bg-zinc-700 poppins-regular text-[14px] text-white rounded-md px-5 py-1.5 transition-transform duration-150 active:scale-95'>Cancel</div>
-                    <div className='bg-violet-500/80 cursor-pointer hover:bg-violet-500 poppins-regular text-[14px] text-white rounded-md px-5 py-1.5 transition-transform duration-150 active:scale-95' onClick={searchSession}>Search</div>
+                <p className='line-clamp-2 poppins-regular text-[13px] text-zinc-300'>{'Session Name : ' + recordings[callDetail]?.slug}</p>
+                <p className='line-clamp-2 poppins-regular text-[13px] text-zinc-300'>{'Date : '+recordings[callDetail]?.date}</p>
+                <div className='flex flex-col py-1 gap-1 w-full'>
+                    {recordings[callDetail]?.peers.map((peer,ind)=>(
+                        <div key={ind} className='flex w-full gap-2 items-center py-1'>
+                            <img src={peer.img} alt="" className='rounded-full size-10'/>
+                            <div className='flex flex-col items-start '>
+                                <p className='line-clamp-2 poppins-regular text-[13px] text-zinc-300'>{peer.name}</p>
+                                <p className='line-clamp-2 poppins-regular text-[13px] text-zinc-300'>{peer.email}</p>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         }
@@ -609,10 +604,10 @@ export default  function Dashboard() {
                 <p className={` ${width>=900 ? 'text-[28px]' : width>790 ? 'text-[20px]' : 'text-[18px]'} leading-[60px] poppins-medium tracking-[-5%] items-center justify-center bg-[linear-gradient(92.22deg,rgba(255,255,255,0.4)_-6.68%,#FAF9F9_31.88%,#D1D1D1_61.39%,rgba(181,181,181,0.4)_89.88%)] bg-clip-text text-transparent poppins-medium `}>Recorded Sessions</p>
                 {width>600 
                 ? 
-                    <div className={`flex items-center gap-5 ${(showProfile || feedBack || showCreate || showJoin || search) && 'pointer-events-none'}`}>
+                    <div className={`flex items-center gap-5 ${(showProfile || feedBack || showCreate || showJoin || callDetail!==-1) && 'pointer-events-none'}`}>
                         <div className='flex gap-2 items-center'>
-                            <div onClick={searchSession} className='hover:bg-zinc-800 hover:border hover:border-zinc-800 p-1 rounded-full cursor-pointer transition-transform duration-150 active:scale-90'><SearchIcon/></div>
-                            <input ref={searchRef} type="text" placeholder='search recorded sessions...' className='poppins-thin text-[15px] w-56 text-zinc-400 placeholder:text-zinc-500 px-2 py-1 rounded-md outline-none bg-black border border-zinc-800'/>
+                            <SearchIcon/>
+                            <input onChange={(e)=>setSearchText(e.target.value)} value={searchText} type="text" placeholder='search recorded sessions...' className='poppins-thin text-[15px] w-56 text-zinc-400 placeholder:text-zinc-500 px-2 py-1 rounded-md outline-none bg-black border border-zinc-800'/>
                         </div>
                         {width>1024 && <div className='flex gap-3'>
                             <div onClick={()=>{
@@ -633,34 +628,53 @@ export default  function Dashboard() {
                     </div>
                     
                 :
-                    <div onClick={()=>setSearch(true)} className={`hover:bg-zinc-800 hover:border hover:border-zinc-800 p-1 rounded-full cursor-pointer transition-transform duration-150 active:scale-90 ${(showProfile || feedBack || showCreate || showJoin || search) && 'pointer-events-none'}`}><SearchIcon/></div>
+                    <div onClick={()=>setSearch(true)} className={`hover:bg-zinc-800 hover:border hover:border-zinc-800 p-1 rounded-full cursor-pointer transition-transform duration-150 active:scale-90 ${(showProfile || feedBack || showCreate || showJoin || callDetail!==-1) && 'pointer-events-none'}`}><SearchIcon/></div>
                 }
             </div>
-            <div className='border-b w-full border-b-zinc-800'></div>
-            {searching && 
-                <div className={`my-2 flex items-center gap-2 justify-start rounded-full w-fit px-3 py-1 border border-zinc-800`}>
-                    <p className={`poppins-regular ${width<768 ? 'text-[13px]' : 'text-[15px]'} tracking-[-5%] text-zinc-300/70`}>{searchedText}</p>
-                    <div className='cursor-pointer rounded-full p-0.5 hover:bg-zinc-800 '
-                    onClick={()=>{
-                        setSearchedText('');
-                        setSearching(false);
-                        if(searchRef.current) searchRef.current.value='';
-                    }}><CrossIcon/></div>
+            
+            {search && 
+                <div className='flex w-full justify-between pb-2 px-3'>
+                    <input onChange={(e)=>setSearchText(e.target.value)} value={searchText} type="text" placeholder='search recorded sessions...' className='poppins-regular text-[15px] w-60 text-zinc-400 placeholder:text-zinc-500 px-2 py-1 rounded-md outline-none bg-black border border-zinc-800'/>
+                    <div className="top-3 right-3 rounded-full p-1.5 border hover:bg-zinc-800 cursor-pointer" 
+                        onClick={()=>{
+                            setSearch(false)
+                            setSearchText('');
+                        }}><CrossIcon/></div>
                 </div>
             }
-            <div className={`w-full flex flex-col gap-10 min-h-full mt-5 ${(showProfile || feedBack || showCreate || showJoin || search) && 'pointer-events-none'}`}>
-                {/* <div className='bg-white h-96'></div>
-                <div className='bg-white h-96'></div>
-                <div className='bg-white h-96'></div>
-                <div className='bg-white h-96'></div>
-                <div className='bg-white h-96'></div> */}
-            </div>
+            
+            <div className='border-b w-full border-b-zinc-800'></div>
+            
+            {recordings.length===0
+             ?
+                <p className={` ${width>=900 ? 'text-[24px]' : width>790 ? 'text-[18px]' : 'text-[16px]'} leading-[60px] poppins-regular tracking-[-5%] items-center justify-center bg-zinc-400/30 bg-clip-text text-transparent poppins-medium w-fit absolute self-center top-1/2`}>No Recorded Sessions</p>
+             :
+                <div className={`w-full grid ${width>1280 ? 'grid-cols-4' : width>1024 ? 'grid-cols-3' : width>800 ? 'grid-cols-2' : 'grid-cols-1'} gap-10 min-h-full mt-5 ${(showProfile || feedBack || showCreate || showJoin || callDetail!==-1) && 'pointer-events-none'}`}>
+                    {filteredRecordings.map((session,ind)=>(
+                        <div  key={ind} className=' p-1.5 bg-black h-auto rounded-md border border-zinc-800 flex flex-col gap-2'>
+                            <div onClick={()=>showClips(session.clips,session.slug)} className=' transform transition-transform duration-300 hover:scale-95 hover:z-20 cursor-pointer z-10 w-full border border-zinc-800/90 h-[90%] rounded-md' style={{aspectRatio:'16/10'}}>
+                                {session.clips[0] && (
+                                    <video
+                                        src={session.clips[0].url}
+                                        muted
+                                        playsInline
+                                        controls={false}
+                                        className="w-full rounded-md h-full object-cover pointer-events-none"
+                                    />
+                                )}
+                            </div>
+                            <div className='flex-1 flex justify-between px-2'>
+                                <p className="poppins-regular tracking-[-5%] text-zinc-300/80 text-[16px] line-clamp-2">
+                                    {session.slug}
+                                </p>
+                                <div onClick={()=>setCallDetail(ind)} className='p-0.5 rounded-full hover:bg-zinc-900 cursor-pointer '><DotsIcon/></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            }
+
         </div>
                
     </div>
-} 
-
-// search logic 
-// searched Item render or not found
-// if present render items else no recorded sessions
-// designing cards for showing recorded sessions 
+}
