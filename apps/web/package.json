@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --port 3000",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint --max-warnings 0",
     "check-types": "tsc --noEmit"
@@ -13,8 +13,6 @@
   "dependencies": {
     "@daily-co/daily-js": "^0.79.0",
     "@prisma/client": "^6.7.0",
-    "@repo/database": "workspace:*",
-    "@repo/ui": "workspace:*",
     "@types/bcrypt": "^5.0.2",
     "@types/cookie": "^1.0.0",
     "@types/cors": "^2.8.17",

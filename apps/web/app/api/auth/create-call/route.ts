@@ -2,7 +2,7 @@ import { NextResponse,NextRequest } from "next/server";
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { randomUUID } from "crypto";
 import { getToken } from "next-auth/jwt";
-import {prismaClient} from '@repo/database/client';
+import { prismaClient } from 'database';
 
 const jwt_secret=process.env.JWT_SECRET; 
 const nextauth_secret = process.env.NEXTAUTH_SECRET!;

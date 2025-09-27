@@ -1,5 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
-import { prismaClient } from "@repo/database/client";
+import { prismaClient } from 'database';
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUD_NAME!,

@@ -26,12 +26,6 @@ importers:
       '@prisma/client':
         specifier: ^6.7.0
         version: 6.7.0(prisma@6.7.0(typescript@5.8.2))(typescript@5.8.2)
-      '@repo/database':
-        specifier: workspace:*
-        version: link:../../packages/database
-      '@repo/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       '@types/bcrypt':
         specifier: ^5.0.2
         version: 5.0.2
@@ -229,22 +223,6 @@ importers:
       '@types/node':
         specifier: ^22.15.3
         version: 22.15.3
-
-  packages/database:
-    dependencies:
-      prisma:
-        specifier: ^6.7.0
-        version: 6.7.0(typescript@5.9.2)
-    devDependencies:
-      '@prisma/client':
-        specifier: ^6.7.0
-        version: 6.7.0(prisma@6.7.0(typescript@5.9.2))(typescript@5.9.2)
-      '@repo/eslint-config':
-        specifier: workspace:*
-        version: link:../eslint-config
-      '@repo/typescript-config':
-        specifier: workspace:*
-        version: link:../typescript-config
 
   packages/eslint-config:
     devDependencies:
@@ -4342,10 +4320,13 @@ snapshots:
       esbuild-register: 3.6.0(esbuild@0.25.3)
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
-  '@prisma/debug@6.7.0': {}
+  '@prisma/debug@6.7.0':
+    optional: true
 
-  '@prisma/engines-version@6.7.0-36.3cff47a7f5d65c3ea74883f1d736e41d68ce91ed': {}
+  '@prisma/engines-version@6.7.0-36.3cff47a7f5d65c3ea74883f1d736e41d68ce91ed':
+    optional: true
 
   '@prisma/engines@6.7.0':
     dependencies:
@@ -4353,16 +4334,19 @@ snapshots:
       '@prisma/engines-version': 6.7.0-36.3cff47a7f5d65c3ea74883f1d736e41d68ce91ed
       '@prisma/fetch-engine': 6.7.0
       '@prisma/get-platform': 6.7.0
+    optional: true
 
   '@prisma/fetch-engine@6.7.0':
     dependencies:
       '@prisma/debug': 6.7.0
       '@prisma/engines-version': 6.7.0-36.3cff47a7f5d65c3ea74883f1d736e41d68ce91ed
       '@prisma/get-platform': 6.7.0
+    optional: true
 
   '@prisma/get-platform@6.7.0':
     dependencies:
       '@prisma/debug': 6.7.0
+    optional: true
 
   '@redis/bloom@5.8.2(@redis/client@5.8.2)':
     dependencies:
@@ -5426,6 +5410,7 @@ snapshots:
       esbuild: 0.25.3
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   esbuild@0.25.3:
     optionalDependencies:
@@ -5454,6 +5439,7 @@ snapshots:
       '@esbuild/win32-arm64': 0.25.3
       '@esbuild/win32-ia32': 0.25.3
       '@esbuild/win32-x64': 0.25.3
+    optional: true
 
   escalade@3.2.0: {}
 
@@ -6978,6 +6964,7 @@ snapshots:
       typescript: 5.9.2
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   proc-log@5.0.0: {}
 

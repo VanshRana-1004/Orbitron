@@ -1,6 +1,6 @@
 import { NextResponse,NextRequest } from "next/server";
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { prismaClient } from "@repo/database/client";
+import { prismaClient } from 'database';
 import { getToken } from "next-auth/jwt";
 
 const jwt_secret=process.env.JWT_SECRET; 

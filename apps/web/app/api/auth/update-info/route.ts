@@ -1,6 +1,6 @@
 import { encode,getToken } from "next-auth/jwt";
 import { cookies } from "next/headers";
-import { prismaClient } from "@repo/database/client";
+import { prismaClient } from 'database';
 import { NextResponse } from "next/server";
 import jwt from 'jsonwebtoken';
 import { v2 as cloudinary } from 'cloudinary';

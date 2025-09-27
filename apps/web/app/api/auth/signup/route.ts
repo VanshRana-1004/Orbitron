@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { signupType } from '../../../utils/zodtypes';
-import { prismaClient } from '@repo/database/client';
+import { prismaClient } from 'database';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 const jwt_secret=process.env.JWT_SECRET as string;

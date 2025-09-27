@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { signinType } from '../../../utils/zodtypes';
-import {prismaClient} from "@repo/database/client";
+import { prismaClient } from 'database';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { getAuthCookie } from '../../../lib/set-auth-cookie';
+console.log(prismaClient);
 
 const jwt_secret=process.env.JWT_SECRET as string;
 export async function POST(req: Request) {

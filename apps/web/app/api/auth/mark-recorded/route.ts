@@ -1,4 +1,4 @@
-import { prismaClient } from '@repo/database/client';
+import { prismaClient } from 'database';
 
 export async function GET(req : Request){
     const { searchParams }=new URL(req.url);

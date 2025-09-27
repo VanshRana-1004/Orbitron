@@ -36,17 +36,6 @@ CREATE TABLE "callusertime" (
 );
 
 -- CreateTable
-CREATE TABLE "ScheduledCalls" (
-    "id" SERIAL NOT NULL,
-    "userId" INTEGER NOT NULL,
-    "slug" TEXT NOT NULL,
-    "date" TEXT NOT NULL,
-    "time" TEXT NOT NULL,
-
-    CONSTRAINT "ScheduledCalls_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "RecordedCalls" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
