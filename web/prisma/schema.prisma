@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  firstName     String
+  lastName      String
+  email         String         @unique
+  password      String?
+  joinedAt      DateTime       @default(now())
+  profileImage  String?
+  oauth         Boolean
+  callUserTimes CallUserTime[]
+  calls         Call[]         @relation("UserToCall")
+
+  @@map("user")
+}
+
+model Call {
+  id            Int            @id @default(autoincrement())
+  slug          String
+  callingId     String
+  ended         Boolean
+  recorded      Boolean           
+  startTime     String
+  date          String
+  callUserTimes CallUserTime[]
+  users         User[]         @relation("UserToCall")
+
+  @@map("call")
+}
+
+model CallUserTime {
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  callId   Int
+  joinedAt DateTime @default(now())
+  call     Call     @relation(fields: [callId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, callId])
+  @@index([userId])
+  @@index([callId])
+  @@map("callusertime")
+}
+
+model RecordedCalls {
+  id       Int    @id @default(autoincrement())
+  userId   Int
+  slug     String
+  callId   String
+  date     String
+  time     String
+  duration String
+  clips    Clip[]
+}
+
+model Clip {
+  id            Int           @id @default(autoincrement())
+  callId        Int
+  clipNumber    Int
+  cloudinaryUrl String
+  publicId      String
+  recordedCall  RecordedCalls @relation(fields: [callId], references: [id])
+
+  @@index([callId, clipNumber])
+}
+
+model Feedback {
+  id      Int    @id @default(autoincrement())
+  userId  Int
+  email   String
+  img     String
+  comment String
+  name    String
+}

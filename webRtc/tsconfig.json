@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["es2020"],
+    "types": ["node"],
+    "module": "node16",
+    "moduleResolution": "node16",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "resolveJsonModule": true,
+  },
+  "include": [
+    "src/**/*" 
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "tailwind.config.ts",
+    "css": "app/globals.css",
+    "baseColor": "zinc",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "webRtc/components",
+    "utils": "webRtc/lib/utils",
+    "ui": "webRtc/components/ui",
+    "lib": "webRtc/lib",
+    "hooks": "webRtc/hooks"
+  },
+  "registries": {}
+}

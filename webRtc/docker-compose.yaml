@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    networks:
+      - orbitron_network
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  orbitron:
+    image: orbitron
+    container_name: orbitron
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+      - "40000-40999/udp"
+      - "40000-40999/tcp"
+      - "41000-41999/udp"
+    networks:
+      - orbitron_network
+
+networks:
+  orbitron_network:
+    driver: bridge
