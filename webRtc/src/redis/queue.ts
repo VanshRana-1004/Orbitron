@@ -3,10 +3,13 @@ dotenv.config();
 import { Worker,Queue } from "bullmq";
 
 export const ffmpegQueue = new Queue("ffmpeg-jobs", {
-  connection: { host: process.env.REDIS_HOST || "localhost", port: Number(process.env.REDIS_PORT) || 6379 }
+  connection: { host: process.env.REDIS_HOST || "localhost", port: 6379 }
 });
 
 export async function enqueueRoomJob(roomId : string) {
   await ffmpegQueue.add("final", { roomId });
-  console.log('job pushed to queue')
+  console.log('job pushed to queue : ',roomId);
+  
+  ffmpegQueue.on("waiting", (jobId) => console.log(`Job ${jobId} is waiting`));
+
 }

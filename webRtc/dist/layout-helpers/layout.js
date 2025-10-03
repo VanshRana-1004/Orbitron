@@ -47,7 +47,7 @@ async function createLayout(segment, outputPath) {
         audioMap = `-map "${inputs[0]?.replace(/\[|\]/g, '')}"`;
     }
     else {
-        audioCmd = `;${inputs.join('')}amix=inputs=${inputs.length}:weights=${inputs.map(() => '1').join(' ')}[aout]`;
+        audioCmd = `;${inputs.join('')}amix=inputs=${inputs.length}:normalize=1[aout]`;
         audioMap = `-map "[aout]"`;
     }
     if (screen.length > 0) {

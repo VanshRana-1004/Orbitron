@@ -29,7 +29,7 @@ function createRedisWorker() {
             throw err;
         }
     }, {
-        connection: { host: process.env.REDIS_HOST || "localhost", port: Number(process.env.REDIS_PORT) || 6379 },
+        connection: { host: process.env.REDIS_HOST || "localhost", port: 6379 },
         concurrency: 1,
     });
     worker.on("completed", async (job) => {
@@ -46,6 +46,7 @@ function createRedisWorker() {
             console.log(e);
         }
     });
+    worker.on('active', (job) => console.log('[redis worker] active job : ', job.data.roomId));
     worker.on("failed", (job, err) => console.error(`Job ${job?.id} failed:`, err));
     worker.on("error", (err) => console.error("Worker error:", err));
     console.log("Worker is running and listening for jobs...");

@@ -45,7 +45,7 @@ interface Clips {
 export default  function Dashboard() {
     const router=useRouter();
     const {video,setVideo}=useCurrentVideoStore();
-    const {recordings,setRecordings}=useRecordingStore();
+    const {recordings,setRecordings,addRecordings}=useRecordingStore();
     const callNameRef=useRef<HTMLInputElement>(null);
     const callIdRef=useRef<HTMLInputElement>(null);
     const [showCreate,setShowCreate]=useState(false);
@@ -153,18 +153,29 @@ export default  function Dashboard() {
         return () => clearInterval(interval);
     },[auth])
 
-    useEffect(()=>{
-        if(!auth) return;
-        console.log('fetching clips for userId : ',idRef.current);
-        async function getInfo(){
-            const res =await axios.get('/api/auth/get-clips',{
-                params : {userId : Number(idRef.current)}
-            })
-            console.log(res.data);
-            if(res.data.length!=0) setRecordings(res.data);
+    useEffect(() => {
+        if (!auth) return;
+
+        const callIds = recordings.map(recording => recording.callId);
+        console.log('Sending call IDs for processing:', callIds);
+        const requestBody = { 
+            userId: Number(idRef.current),
+            callIds
+        };
+
+        async function getInfo() {
+            try {
+                const res = await axios.post('/api/auth/get-clips', requestBody);
+                console.log(res.data);
+                if (res.data.length !== 0) {
+                    addRecordings(res.data);
+                }
+            } catch (error) {
+                console.error("Error fetching clips:", error);
+            }
         }
         getInfo();
-    },[auth,recordedCalls])
+    }, [auth, recordedCalls]);
 
     async function createNewCall(){ 
         if(callNameRef.current?.value==''){

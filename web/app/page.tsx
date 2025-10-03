@@ -105,8 +105,8 @@ export default function Home() {
               
             {width>840 && 
               <div className="flex flex-col items-center justify-center">
-                <p className="text-wrap text-center text-[70px] leading-[80px]">Talk Freely. Record Easily.</p>
-                <p className="text-wrap text-center text-[70px] leading-[80px]">Revisit AnyTime.</p>  
+                <p className="text-wrap text-center text-[77px] tracking-tight leading-[80px]">Talk Freely. Record Easily.</p>
+                <p className="text-wrap text-center text-[77px] tracking-tight leading-[80px]">Revisit AnyTime.</p>  
               </div>
             }
 

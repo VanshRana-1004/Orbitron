@@ -7,28 +7,33 @@ cloudinary.config({
   api_secret: process.env.NEXT_PUBLIC_CLOUD_SECRET!,
 });
 
-async function getClipsByUserId(userId: string) {
+interface RequestBody {
+  userId: number;
+  callIds: string[];
+}
+
+async function getClipsByUserId(userId: string, existingCallIds: string[]) {
   const userWithCalls = await prismaClient.user.findUnique({
     where: { id: Number(userId) },
     include: {
       calls: true
     },
   });
-  console.log(userWithCalls) 
+  console.log(userWithCalls)
 
   if (!userWithCalls) return [];
 
   const finalResult: {
     callId: string;
-    slug : string; 
+    slug: string;
     recorded: boolean;
-    date : string;
-    time : string;
-    peers : {
-      img : string;
-      name : string;
-      email : string
-    }[]; 
+    date: string;
+    time: string;
+    peers: {
+      img: string;
+      name: string;
+      email: string
+    }[];
     clips: {
       url: string;
       roomId: string;
@@ -37,8 +42,16 @@ async function getClipsByUserId(userId: string) {
     }[];
   }[] = [];
 
-  for (const call of userWithCalls.calls) {
+  const newCalls = userWithCalls.calls.filter(
+    call => !existingCallIds.includes(call.callingId)
+  );
+
+  console.log(`Found ${newCalls.length} new calls to process.`);
+
+
+  for (const call of newCalls) {
     console.log(call.slug)
+    
     let clips: {
       url: string;
       roomId: string;
@@ -46,8 +59,9 @@ async function getClipsByUserId(userId: string) {
       public_id: string;
     }[] = [];
 
-    if (call.recorded===true) {
+    if (call.recorded === true) {
       console.log('callingId of recorded call', call.callingId);
+      
       const result = await cloudinary.search
         .expression(`folder:"recordings/${call.callingId}"`)
         .sort_by('created_at', 'asc')
@@ -84,42 +98,42 @@ async function getClipsByUserId(userId: string) {
           public_id: String(clip.public_id),
         };
       });
-      
-      const res=await prismaClient.call.findFirst({
-        where : {
-          id : Number(call.id)
+
+      const res = await prismaClient.call.findFirst({
+        where: {
+          id: Number(call.id)
         },
-        include :{
-          callUserTimes : {
-            include : {
-              user : true
+        include: {
+          callUserTimes: {
+            include: {
+              user: true
             }
           }
         }
       })
-      
-      const peers : {img : string, name : string, email : string}[]=[];
+
+      const peers: { img: string, name: string, email: string }[] = [];
       if (res?.callUserTimes) {
         for (const cut of res.callUserTimes) {
           if (cut.user) {
             peers.push({
               img: cut.user.profileImage ?? '',
-              name: cut.user.firstName+' '+cut.user.lastName,
+              name: cut.user.firstName + ' ' + cut.user.lastName,
               email: cut.user.email,
             });
           }
         }
       }
-      
-      console.log('[peers data] : ',peers);
+
+      console.log('[peers data] : ', peers);
 
       finalResult.push({
         callId: call.callingId,
-        date : call.date,
-        time : call.startTime,
-        slug : call.slug,
+        date: call.date,
+        time: call.startTime,
+        slug: call.slug,
         recorded: call.recorded,
-        peers,  
+        peers,
         clips,
       });
     }
@@ -128,15 +142,30 @@ async function getClipsByUserId(userId: string) {
   return finalResult;
 }
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get('userId');
-  console.log('Fetching clips for userId:', userId);
-
-  if (!userId) {
-    return Response.json({ error: 'Missing userId' }, { status: 400 });
+export async function POST(req: Request) {
+  let body: RequestBody;
+  try {
+    body = await req.json() as RequestBody;
+  } catch (error) {
+    return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const clips = await getClipsByUserId(userId);
-  return Response.json(clips);
+  const { userId, callIds } = body;
+
+  if (userId === undefined || !callIds) {
+    return Response.json({ error: 'Missing userId or callIds array in body' }, { status: 400 });
+  }
+  
+  const userIdString = String(userId);
+
+  console.log('POST: Fetching NEW clips for userId:', userIdString);
+  console.log('POST: Client already has callIds:', callIds);
+
+  try {
+    const newClips = await getClipsByUserId(userIdString, callIds);
+    return Response.json(newClips);
+  } catch (error) {
+     console.error("Error processing clips:", error);
+     return Response.json({ error: 'Server error processing request' }, { status: 500 });
+  }
 }

@@ -21,13 +21,13 @@ function startFfmpeg(sdpPath, outputPath) {
     ];
     const ffmpeg = (0, child_process_1.spawn)("ffmpeg", ffmpegArgs);
     ffmpeg.stdout.on("data", (data) => {
-        console.log(`[data] FFmpeg stdout: ${data}`);
+        // console.log(`[data] FFmpeg stdout: ${data}`);
     });
     ffmpeg.stderr.on("data", (data) => {
-        console.error(`[error] FFmpeg stderr: ${data}`);
+        // console.error(`[error] FFmpeg stderr: ${data}`);
     });
     ffmpeg.on("close", (code) => {
-        console.log(`[stop] FFmpeg exited with code ${code}`);
+        // console.log(`[stop] FFmpeg exited with code ${code}`);
     });
     return ffmpeg;
 }

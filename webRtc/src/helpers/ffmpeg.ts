@@ -21,11 +21,11 @@ export function startFfmpeg(sdpPath: string, outputPath: string) {
   const ffmpeg = spawn("ffmpeg", ffmpegArgs);
 
   ffmpeg.stdout.on("data", (data) => {
-    console.log(`[data] FFmpeg stdout: ${data}`);
+    // console.log(`[data] FFmpeg stdout: ${data}`);
   });
 
   ffmpeg.stderr.on("data", (data) => {
-    console.error(`[error] FFmpeg stderr: ${data}`);
+    // console.error(`[error] FFmpeg stderr: ${data}`);
   });
 
   ffmpeg.on("close", (code) => {

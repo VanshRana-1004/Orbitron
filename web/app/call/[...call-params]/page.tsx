@@ -165,7 +165,8 @@ export default function Call() {
 
     const socket=socketRef.current;
     
-    joinRoom();let timeout: ReturnType<typeof setTimeout> | undefined;
+    joinRoom();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     let timeout1:  ReturnType<typeof setTimeout> | undefined;
     const newPeerHandler = ({ peers } : { peers: number}) => setPeers(peers);
     const peerLeaveHandler = ({name} : {name : string}) => {
@@ -460,16 +461,10 @@ export default function Call() {
           track: localStream.getAudioTracks()[0],
           appData: { mediaTag: 'mic-audio' },
           codecOptions: {
-            opusMaxPlaybackRate: 48000,
+            opusMaxPlaybackRate: 48000, 
             opusStereo: true,
-            opusDtx: true,
           },
-          encodings: [
-            {
-              maxBitrate: 96000,  
-              dtx: true           
-            }
-          ]
+          encodings: [{ maxBitrate: 128000 }]
         });
 
         camProducerRef.current=await sendTransportRef.current.produce({

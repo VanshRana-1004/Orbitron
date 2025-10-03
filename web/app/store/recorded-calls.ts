@@ -13,9 +13,14 @@ interface CallRecording {
 interface RecordingState {
   recordings: CallRecording[];
   setRecordings: (recordings: CallRecording[]) => void;
+  addRecordings: (newRecordings: CallRecording[]) => void;
 }
 
 export const useRecordingStore = create<RecordingState>((set) => ({
   recordings: [],
   setRecordings: (recordings) => set({ recordings }),
+  addRecordings: (newRecordings) => 
+    set((state) => ({
+      recordings: [...state.recordings, ...newRecordings],
+    })),
 })); 

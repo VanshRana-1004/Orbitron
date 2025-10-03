@@ -9,9 +9,10 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const bullmq_1 = require("bullmq");
 exports.ffmpegQueue = new bullmq_1.Queue("ffmpeg-jobs", {
-    connection: { host: process.env.REDIS_HOST || "localhost", port: Number(process.env.REDIS_PORT) || 6379 }
+    connection: { host: process.env.REDIS_HOST || "localhost", port: 6379 }
 });
 async function enqueueRoomJob(roomId) {
     await exports.ffmpegQueue.add("final", { roomId });
-    console.log('job pushed to queue');
+    console.log('job pushed to queue : ', roomId);
+    exports.ffmpegQueue.on("waiting", (jobId) => console.log(`Job ${jobId} is waiting`));
 }
