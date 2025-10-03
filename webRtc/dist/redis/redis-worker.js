@@ -17,10 +17,13 @@ function createRedisWorker() {
         const roomId = job.data.roomId;
         console.log(`Starting FFmpeg process for room ${roomId}`);
         try {
+            console.log('[timeline]');
             await (0, timeline_1.timeline)(roomId);
             console.log(`Finished final clips processing for room ${roomId}`);
+            console.log('[upload]');
             await (0, upload_1.finalUploads)(roomId);
             console.log(`file uploaded to cloudinary for ${roomId} successfully.`);
+            console.log('[deletion]');
             await (0, delete_temp_1.cleanupFiles)(roomId);
             console.log('temporary files deleted successfully for roomId : ', roomId);
         }

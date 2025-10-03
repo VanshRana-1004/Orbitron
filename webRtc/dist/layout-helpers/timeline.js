@@ -71,6 +71,8 @@ function buildTimeline(clips) {
 }
 const finalClipsDir = path_1.default.join('/webRtc', 'final-recordings');
 async function timeline(roomId) {
+    console.log("[timeline] entered with roomId =", roomId);
+    console.log("[timeline] roomMap keys:", Object.keys(__1.roomMap));
     const room = __1.roomMap[roomId];
     if (!room) {
         console.log('No room find no finalize recordings');

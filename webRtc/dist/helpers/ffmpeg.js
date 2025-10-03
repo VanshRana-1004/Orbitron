@@ -27,7 +27,7 @@ function startFfmpeg(sdpPath, outputPath) {
         // console.error(`[error] FFmpeg stderr: ${data}`);
     });
     ffmpeg.on("close", (code) => {
-        // console.log(`[stop] FFmpeg exited with code ${code}`);
+        console.log(`[stop] FFmpeg exited with code ${code}`);
     });
     return ffmpeg;
 }
