@@ -172,8 +172,8 @@ callNamespace.on('connect', async (socket: Socket) => {
       if(!room) return callback({error : 'room not found'})
       const peer : Peer=new Peer(name,socket.id,userId);
       room.peers.push(peer);
-
-      if(room.orgHost === String(userId)){
+      console.log('[join] hostId : ', room.orgHost)
+      if(String(room.orgHost) === String(userId)){
         console.log('[host] userId : ',userId);
         room.host = userId;
         socket.emit('host');
