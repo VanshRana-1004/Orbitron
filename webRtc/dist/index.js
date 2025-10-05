@@ -39,7 +39,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.io = exports.roomIdUserIdMap = exports.rtpPool = exports.roomMap = void 0;
 const http = __importStar(require("http"));
 const express_1 = __importDefault(require("express"));
-const cors_1 = __importDefault(require("cors"));
 const socket_io_1 = require("socket.io");
 const worker_1 = require("./helpers/worker");
 const config_1 = require("./helpers/config");
@@ -57,11 +56,26 @@ dotenv_1.default.config();
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000/api/auth';
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
-app.use((0, cors_1.default)({
-    origin: '*',
-    methods: ['GET', 'POST'],
-    credentials: true
-}));
+const allowedOrigins = [
+    'https://orbitron-three.vercel.app',
+    'https://orbitron.live',
+    'https://www.orbitron.live'
+];
+// Simple CORS middleware
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(String(origin))) {
+        res.setHeader('Access-Control-Allow-Origin', String(origin));
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
 const PORT = 8080;
 const server = http.createServer(app);
 const workerPromise = (0, worker_1.CreateWorker)();
@@ -74,7 +88,18 @@ exports.roomIdUserIdMap = {};
 (0, redis_worker_1.createRedisWorker)();
 exports.io = new socket_io_1.Server(server, {
     cors: {
-        origin: '*',
+        origin: function (origin, callback) {
+            if (!origin)
+                return callback(null, true);
+            if (allowedOrigins.includes(origin)) {
+                callback(null, true);
+            }
+            else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 const sdpDir = path_1.default.join('/webRtc', 'sdp');

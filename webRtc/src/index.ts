@@ -17,24 +17,30 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const CLIENT_URL=process.env.CLIENT_URL || 'http://localhost:3000/api/auth';
-const app=express();
+const app = express();
 app.use(express.json());
 
-const allowedOrigins = ['https://orbitron-three.vercel.app','https://orbitron.live', 'https://www.orbitron.live'];
+const allowedOrigins = [
+  'https://orbitron-three.vercel.app',
+  'https://orbitron.live',
+  'https://www.orbitron.live'
+];
 
-app.use(cors({
-  origin: function(origin, callback){
-    if(!origin) return callback(null, true); 
-    if(allowedOrigins.includes(origin)){
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(String(origin))) {
+    res.setHeader('Access-Control-Allow-Origin', String(origin));
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
 
-app.options('*', cors());
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
 
 const PORT = 8080;
 const server: http.Server = http.createServer(app);
@@ -49,9 +55,19 @@ createRedisWorker();
 
 export const io = new SocketIOServer(server, {
   cors: {
-    origin: '*',
+    origin: function(origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST"],
+    credentials: true
   }
-}); 
+});
 
 const sdpDir=path.join('/webRtc','sdp');
 if (!fs.existsSync(sdpDir)) {
