@@ -81,6 +81,7 @@ export default function Call() {
   const [isDragging, setIsDragging] = useState(false);
   const [pos, setPos] = useState({ x:0,y:0 }); 
   const offset = useRef({ x: 0, y: 0 });
+  const [auth,setAuth]=useState<boolean>(false);
 
 
   const onMouseDown = (e: React.MouseEvent) => {
@@ -138,7 +139,7 @@ export default function Call() {
         userIdRef.current=response.data.user.id;
         console.log('[userId] : ',userIdRef.current)
         imgRef.current=info.data.user.profileImage || '/defaultpc.png';
-        
+        setAuth(true);
       }).catch((e)=>{
         redirect('/login');
       })
@@ -152,6 +153,7 @@ export default function Call() {
   }, []);  
   
   useEffect(()=>{
+    if(!auth) return;
     const url=window.location.pathname;
     const segments=url.split('/');
     const callName=segments[2];
@@ -236,7 +238,7 @@ export default function Call() {
       clearTimeout(timeout1);
       socket.disconnect();
     };  
-  },[]);    
+  },[auth]);    
   
   function createSilentAudioTrack() {
     const ctx = new AudioContext();
