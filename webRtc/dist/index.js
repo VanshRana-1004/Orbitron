@@ -55,13 +55,11 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000/api/auth';
 const app = (0, express_1.default)();
-app.use(express_1.default.json());
 const allowedOrigins = [
     'https://orbitron-three.vercel.app',
     'https://orbitron.live',
     'https://www.orbitron.live'
 ];
-// Simple CORS middleware
 app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (allowedOrigins.includes(String(origin))) {
@@ -70,12 +68,12 @@ app.use((req, res, next) => {
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
         res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
-    // Handle preflight requests
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
     }
     next();
 });
+app.use(express_1.default.json());
 const PORT = 8080;
 const server = http.createServer(app);
 const workerPromise = (0, worker_1.CreateWorker)();
@@ -201,15 +199,6 @@ callNamespace.on('connect', async (socket) => {
         room.peers.push(peer);
         if (room.orgHost === userId && room.host !== userId) {
             room.host = userId;
-            socket.emit('host');
-            socket.to(roomId).emit('not-host');
-        }
-        else if (room.peers.length === 1) {
-            room.host = userId;
-            socket.emit('host');
-            socket.to(roomId).emit('not-host');
-        }
-        else if (room.host === userId) {
             socket.emit('host');
             socket.to(roomId).emit('not-host');
         }

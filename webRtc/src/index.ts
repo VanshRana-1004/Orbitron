@@ -18,7 +18,6 @@ dotenv.config();
 
 const CLIENT_URL=process.env.CLIENT_URL || 'http://localhost:3000/api/auth';
 const app = express();
-app.use(express.json());
 
 const allowedOrigins = [
   'https://orbitron-three.vercel.app',
@@ -41,6 +40,8 @@ app.use((req, res, next) => {
 
   next();
 });
+
+app.use(express.json());
 
 const PORT = 8080;
 const server: http.Server = http.createServer(app);
@@ -174,14 +175,8 @@ callNamespace.on('connect', async (socket: Socket) => {
         room.host = userId;
         socket.emit('host');
         socket.to(roomId).emit('not-host');
-      } else if (room.peers.length === 1) {
-        room.host = userId;
-        socket.emit('host');
-        socket.to(roomId).emit('not-host');
-      } else if (room.host === userId) {
-        socket.emit('host');
-        socket.to(roomId).emit('not-host');
       }
+
       peerMap[socket.id]=peer;
       if(!room.router) return callback({error : 'router not exists for this room'})
       const producers=room.getProducers();
