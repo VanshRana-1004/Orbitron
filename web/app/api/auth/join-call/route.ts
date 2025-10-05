@@ -19,14 +19,14 @@ export async function POST(req: NextRequest) {
             const response2=await prismaClient.callUserTime.findFirst({
                 where:{
                     userId : Number(userId) ,
-                    callId : response1.id  
+                    callId : Number(response1.id)  
                 }
             })
             if(!response2){
                 const response3=await prismaClient.callUserTime.create({
                 data: {
                         user: { connect: { id: Number(userId) } },
-                        call: { connect: { id: response1.id } },
+                        call: { connect: { id: Number(response1.id) } },
                         joinedAt: new Date(),
                     },
                 });

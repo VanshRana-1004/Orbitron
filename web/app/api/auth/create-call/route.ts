@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
                 callingId : callingId as string,
                 users : {
                     connect :{
-                        id : userId
+                        id : Number(userId)
                     }
                 },
                 date : formattedDate,
@@ -89,8 +89,8 @@ export async function POST(req: NextRequest) {
             console.log('user created a call room');
             const response2=await prismaClient.callUserTime.create({
                 data: {
-                    user: { connect: { id: userId } },
-                    call: { connect: { id: response1.id } },
+                    user: { connect: { id: Number(userId) } },
+                    call: { connect: { id: Number(response1.id) } },
                     joinedAt: new Date(),
                 },
             });
