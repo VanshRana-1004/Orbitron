@@ -9,8 +9,10 @@ import CloudIcon from "./components/icons/cloud";
 import LayoutIcon from "./components/icons/layout";
 import ComputerIcon from "./components/icons/computer";
 import { useEffect,useState,useRef } from "react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, PlayCircleIcon, StopCircleIcon } from "lucide-react";
 import BarIcon from "./components/icons/bar";
+import PlayIcon from "./components/icons/play";
+import PauseIcon from "./components/icons/pause";
 
 const points = [
   { heading: "Start Recording", description:'With a single click, begin recording your live call. No extra setup or tools required - just hit record and focus on the conversation. Everything starts capturing from the moment you begin.',  img: "start-recording.png" },
@@ -22,6 +24,23 @@ export default function Home() {
   const router = useRouter();
   const [width,setWidth]=useState<number>(1536);
   const [showOptions,setShowOptions]=useState<boolean>(false);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [button,setButton]=useState<boolean>(false);
+
+  const togglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isPlaying) {
+      video.pause();
+      setIsPlaying(false);
+    } else {
+      video.play();
+      setIsPlaying(true);
+    }
+  };
 
   useEffect(()=>{
     const handleScreenResize=()=>{
@@ -158,7 +177,7 @@ export default function Home() {
 
       </div>
 
-      <div className="relative min-h-screen z-10 bg-black flex flex-col gap-40 py-40 overflow-hidden"
+      <div className="relative min-h-screen z-10 bg-black flex flex-col gap-56 py-56 overflow-hidden"
       style={{
         scrollBehavior: "smooth",
         backgroundImage: `
@@ -188,9 +207,24 @@ export default function Home() {
 
         <div id='demo' className="z-10 flex flex-col items-center justify-center gap-7">
           <p className={` ${width<768 ? 'text-[35px]' : 'text-[60px]'} leading-[60px] poppins-medium tracking-[-5%] items-center justify-center bg-[linear-gradient(92.22deg,rgba(255,255,255,0.4)_-6.68%,#FAF9F9_31.88%,#D1D1D1_61.39%,rgba(181,181,181,0.4)_89.88%)] bg-clip-text text-transparent poppins-medium `}>Demo Video</p>
-          <div className={`${width<768 ? 'w-[90%]  p-[2px]' : 'w-[70%]  p-[5px]'} rounded-[10px] border border-zinc-900 bg-black `}
+          <div onMouseEnter={() => setButton(true)} onMouseLeave={() => setButton(false)} className={`relative ${width<768 ? 'w-[90%]  p-[2px]' : 'w-[75%]  p-[5px]'} rounded-[10px] border border-zinc-900 bg-black  `}
             style={{background: "radial-gradient(125% 125% at 50% 100%, #18181B 40%, #7E5BEF 100%)",aspectRatio: width>768 ? 16/9 : 13/9}}>
-            <div  className="bg-black rounded-[10px] w-full h-full"></div>
+              <video
+                ref={videoRef}
+                src="/demo.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="bg-black rounded-[10px] w-full h-full"
+              />
+
+              {button && <button
+                onClick={togglePlay}
+                className="z-50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center  text-white text-2xl font-semibold transition rounded-full border border-white/80 bg-black/20 p-3"
+              >
+                {isPlaying ? <PauseIcon/> : <PlayIcon/>}
+              </button>}
           </div>
         </div>
 

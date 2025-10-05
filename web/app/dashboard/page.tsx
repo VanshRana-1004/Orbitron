@@ -118,7 +118,6 @@ export default  function Dashboard() {
                 setFirstName(res1.data.user.firstName);
                 if(name=='') setName(`${res1.data.user.firstName} ${res1.data.user.lastName}`)
                 idRef.current=res1.data.user.id;
-                console.log(res1.data.user.id);
                 setAuth(true);
                 const info=await axios.get('/api/auth/user-info',{
                     params: {
@@ -162,7 +161,6 @@ export default  function Dashboard() {
         async function getInfo() {
             try {
                 const res = await axios.post('/api/auth/get-clips', requestBody);
-                console.log(res.data);
                 if (res.data.length !== 0) {
                     addRecordings(res.data);
                 }
@@ -182,7 +180,6 @@ export default  function Dashboard() {
         await axios.post('/api/auth/create-call', {
             callSlug : callNameRef.current?.value,
         }).then(async (response)=>{
-            console.log(response.data);
             const callId : string=response.data.callingId;
             const slug : string=response.data.slug;
             if(callId==undefined){
@@ -195,7 +192,6 @@ export default  function Dashboard() {
                     userId: response.data.userId,
                 });
                 const data = await res.data;
-                console.log(data);
                 router.push(`/call/${slug}/${callId}`);
             } 
         }).catch((e)=>{
@@ -215,7 +211,6 @@ export default  function Dashboard() {
             callId : callIdRef.current?.value,
             userId : idRef.current,
         }).then(async (response)=>{
-            console.log(response.data);
             const callId : string=response.data.callingId;
             const slug : string=response.data.slug; 
             if(callId==undefined){
@@ -231,7 +226,6 @@ export default  function Dashboard() {
                     body: JSON.stringify({ roomId : callId}),
                 }).then(async (res)=>{
                     if (res.status === 200) {
-                        console.log(res);
                         router.push(`/call/${slug}/${callId}`);
                     }
                     else{
@@ -282,7 +276,6 @@ export default  function Dashboard() {
                 img,
                 email 
             })
-            console.log(res);
             setFeedback(false);
             if(feedbackRef.current) feedbackRef.current.value='';
             setFeedbackLoader(false);
@@ -303,7 +296,6 @@ export default  function Dashboard() {
         if(lnRef.current?.value && lnRef.current.value.length>=3){
             ln=lnRef.current.value;
         }
-        console.log(fn," ",ln);
         const formData = new FormData();
         formData.append("fn", fn);
         formData.append("ln", ln);
@@ -319,17 +311,14 @@ export default  function Dashboard() {
                     "Content-Type": "multipart/form-data",
                 },
             });
-            console.log(res);
             setFirstName(fn);
             setLastName(ln);
             setName(fn + " " + ln);
             setShowProfile(false);
             if(res.data.imageUrl) setImg(res.data.imageUrl);
             else setImg('/defaultpc.png');
-            console.log(res)
             if(fnRef.current) fnRef.current.value='';
             if(lnRef.current) lnRef.current.value='';
-            console.log(`successfully updated user's profile info`);
             setProfileLoader(false);
             toast.success('Profile updated successfully');
         }
@@ -355,8 +344,6 @@ export default  function Dashboard() {
 
     async function showClips(clips : {url: string,roomId: string,clipNum: string,public_id: string}[],slug : string){
         setVideo({slug,clips});
-        console.log('recorded clips data set successfully')
-        console.log(video);
         setTimeout(()=>{
             router.push(`/recorded/${slug}`);
         },500);

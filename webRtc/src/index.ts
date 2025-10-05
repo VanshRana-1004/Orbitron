@@ -17,7 +17,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const CLIENT_URL=process.env.CLIENT_URL || 'http://localhost:3000/api/auth';
-const app = express();
 
 const allowedOrigins = [
   'https://orbitron-three.vercel.app',
@@ -25,23 +24,26 @@ const allowedOrigins = [
   'https://www.orbitron.live'
 ];
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(String(origin))) {
-    res.setHeader('Access-Control-Allow-Origin', String(origin));
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-  }
+const app = express();
 
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
 
-  next();
-});
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS policy: origin ${origin} not allowed`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
+
+app.get('/ping', (req, res) => res.send('pong'));
 
 const PORT = 8080;
 const server: http.Server = http.createServer(app);

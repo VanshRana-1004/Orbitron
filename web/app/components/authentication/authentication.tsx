@@ -73,8 +73,6 @@ export function Authentication() {
                     password
                 }, { withCredentials: true });
 
-                console.log(response.data);
-                console.log('persistent socket connection after login');
 
                 router.push('/dashboard'); 
             } catch (error: any) {
@@ -84,7 +82,7 @@ export function Authentication() {
                     const errors = error.response.data.errors;
                     for(const err of errors){
                     if(err.path === "email") setEmailError(err.message);
-                    else if(err.path === "password") setPasswordError(err.message);
+                        else if(err.path === "password") setPasswordError(err.message);
                     }    
                 }
                 else{
