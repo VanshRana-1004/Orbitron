@@ -25,7 +25,6 @@ import { ToastContainer, toast } from "react-toastify";
 import Picker from '@emoji-mart/react';
 import * as data from "@emoji-mart/data";
 const SERVER_URL = `${process.env.NEXT_PUBLIC_SERVER_URL}/call` || 'http://localhost:8080/call';
-console.log(SERVER_URL);
 export default function Call() {  
   const localStreamRef=useRef<MediaStream>(null);
   const sharedScreenRef=useRef<HTMLVideoElement>(null);
@@ -134,14 +133,12 @@ export default function Call() {
             id: response.data.user.id
           }
         });
-        console.log(info.data);
         setImg(info.data.user.profileImage || '/defaultpc.png');
         nameRef.current=info.data.user.firstName+' '+info.data.user.lastName;
         userIdRef.current=info.data.user.id;
         imgRef.current=info.data.user.profileImage || '/defaultpc.png';
         
       }).catch((e)=>{
-        console.error("Error fetching user info:", e);
         redirect('/login');
       })
     } 
@@ -175,13 +172,11 @@ export default function Call() {
     }
     const newProducerHandler = async ({ producerId, peerId, kind, appData } : {producerId : string, peerId : string, kind : 'video' | 'audio', appData : AppData}) => {
       if (peerId === socket.id) return;
-      console.log('new producer from peerId', peerId, 'kind', kind, 'producerId', producerId);
       await createConsumer(producerId, deviceRef.current,appData);
     };
     const sharedScreenHandler=({toggle,name}:{toggle : boolean, name : string})=>{
       setSharedScreen(toggle)
       setScreenPeer(name)
-      console.log(name);
     } 
     const chatHandler=({name,time,msg, img} : {name : string, time : string, msg : string, img : string})=>setChatArr(prev=>[...prev,{name,time,msg,me:false,img}]);
     const handleJoin=({name} : {name : string})=>{
@@ -189,12 +184,10 @@ export default function Call() {
     }
     const handleScreenNoti=({name} : {name : string})=>setScreenPeer(name);
     const producerClosedHandler = ({ producerId }: { producerId: string }) => {
-      console.log(`request to close producerId ${producerId}.`);
       if (consumedProducerIdsRef.current.has(producerId)) {
           consumedProducerIdsRef.current.delete(producerId);
           remoteStreams.current.delete(producerId);
           assignRemoteStreams(); 
-          console.log(`Consumer for producerId ${producerId} closed.`);
       }
     };
     const handlehost=()=>setHost(true);
@@ -280,7 +273,6 @@ export default function Call() {
       roomId,
       direction: 'send'
     });
-    console.log('uptransport created successfully');
 
     const sendTransport=device.createSendTransport({
       id: upTransport.id,
@@ -288,13 +280,11 @@ export default function Call() {
       iceCandidates: upTransport.iceCandidates,
       dtlsParameters: upTransport.dtlsParameters,
     });
-    console.log('sendtransport created successfully');
 
     const downTransport = await socket.emitWithAck('create-transport', {
       roomId,
       direction: 'recv'
     });
-    console.log('uptransport created successfully');
 
     const recvTransport=device.createRecvTransport({
       id: downTransport.id,
@@ -302,7 +292,6 @@ export default function Call() {
       iceCandidates: downTransport.iceCandidates,
       dtlsParameters: downTransport.dtlsParameters,
     });
-    console.log('recvtransport created successfully');
 
     sendTransport.on('connect', async ({ dtlsParameters }, callback) => {
       try {
@@ -311,16 +300,14 @@ export default function Call() {
           transportId: sendTransport.id,
           dtlsParameters
         });
-        console.log('transport connected successfully');
         callback();
       } catch (err) {
-        console.log(err);
+        console.error(err);
       }
     });
 
     sendTransport.on('produce', async ({ kind, rtpParameters, appData }, callback) => {
       try {
-        console.log('sending request to create producer')
         const { id: producerId } = await socket.emitWithAck('produce', {
           roomId,
           transportId: sendTransport.id,
@@ -329,7 +316,6 @@ export default function Call() {
           appData
         });
         callback({ id: producerId });
-        console.log('producer created successfully')
       } catch (error) {
         console.error(error);
       }
@@ -344,7 +330,7 @@ export default function Call() {
         });
         callback();
       } catch (err) {
-        console.log(err);
+        console.error(err)
       }
     });
 
@@ -357,7 +343,6 @@ export default function Call() {
       remoteVideoRefs.forEach((ref, index) => {
         if (ref.current) {
           ref.current.srcObject = streams[index] || null;
-          console.log('remote stream assigned');
           if (streams[index]) ref.current.play().catch(() => console.debug('play blocked'));
         }
       });
@@ -394,7 +379,6 @@ export default function Call() {
           }
         }
         else{
-          console.log('adding video stream for producerId', producerId);
           remoteStreams.current.set(producerId, stream);
           assignRemoteStreams();
         }
@@ -425,14 +409,9 @@ export default function Call() {
           }
           const { routerRtpCapabilities, producers, shared}=res;
           setSharedScreen(shared);
-          console.log('------producers------',producers);
           const device=new Device();
-          console.log('device created successfully');
-          console.log(routerRtpCapabilities);
           await device.load({ routerRtpCapabilities });
-          console.log('device loaded successfully');      
           deviceRef.current=device;
-          console.log('request to create transport');
           await createTransports(device);  for (const producerInfo of producers) {
         const producerId=producerInfo.id;
         const appData : AppData=producerInfo.appData;
@@ -451,7 +430,6 @@ export default function Call() {
           frameRate: {ideal: 60}
         }).catch(err => console.warn("applyConstraints failed:", err));
       }
-      console.log("Local video settings:", localVideoTrack?.getSettings());
       if (localStream && localVideoRef.current && sendTransportRef.current) {
         localStreamRef.current = localStream;
         localVideoRef.current.srcObject = localStream;
@@ -524,7 +502,6 @@ export default function Call() {
         frameRate: {ideal : 60}
       }).catch(err => console.warn("applyConstraints failed:", err));
     }
-    console.log("Local video settings:", localVideoTrack?.getSettings());
     if (localStream && localVideoRef.current) {
       localStreamRef.current=localStream;
       localVideoRef.current.srcObject = localStream;
@@ -566,7 +543,6 @@ export default function Call() {
             frameRate: 60
           }).catch(err => console.warn("applyConstraints failed:", err));
         }
-        console.log("Local video settings:", localVideoTrack?.getSettings());
         const newCamTrack = newCamStream.getVideoTracks()[0];
         if(newCamTrack) await camProducer.replaceTrack({ track: newCamTrack });
         if (localVideoRef.current && newCamTrack) {
@@ -623,7 +599,6 @@ export default function Call() {
       });
       if(sharedScreenRef.current) sharedScreenRef.current.srcObject = screenStream;
       const screenVideoTrack = screenStream.getVideoTracks()[0];
-      console.log("Screen video settings:", screenVideoTrack?.getSettings());
       if (screenVideoTrack) {
         await screenVideoTrack.applyConstraints({
           width: 1920,
@@ -641,7 +616,6 @@ export default function Call() {
       let micTrack = screenStream.getAudioTracks()[0];
       if (!micTrack) {
         micTrack = createSilentAudioTrack();
-        console.log("No screen audio found, using dummy silent track");
       }
 
       if (micTrack) {
@@ -756,7 +730,6 @@ export default function Call() {
         msgRef.current.value='';
         if(msg.length>0){
           setChatArr(prev=>[...prev,{name : nameRef.current,time,msg,me:true,img}]);
-          console.log(imgRef.current);
           await socket.emit('chat', {roomId : callIdRef.current,name : nameRef.current,time,msg,img : imgRef.current!='' ? imgRef.current! : '/defaultpc.png'  },(res : {error? : string})=>{});
         }
     }

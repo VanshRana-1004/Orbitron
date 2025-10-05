@@ -125,7 +125,6 @@ export default  function Dashboard() {
                         id: res1.data.user.id
                     }
                 });
-                console.log(info.data);
                 setImg(info.data.user.profileImage || '/defaultpc.png');
             }catch(e){
                 console.error("Error fetching user info:", e);
@@ -142,11 +141,9 @@ export default  function Dashboard() {
                 const res=await axios.get('/api/auth/number-of-calls',{
                     params : {userId : Number(idRef.current)}
                 })
-                console.log('[server]:[number of recorded calls]:')
-                console.log(res.data.count);
                 setRecordedCalls(res.data.count);
             }catch(e){
-                console.log(e);
+                console.error(e);
             }
         }
         const interval = setInterval(getNumberOfRecordedCalls, 10000);
@@ -157,7 +154,6 @@ export default  function Dashboard() {
         if (!auth) return;
 
         const callIds = recordings.map(recording => recording.callId);
-        console.log('Sending call IDs for processing:', callIds);
         const requestBody = { 
             userId: Number(idRef.current),
             callIds
@@ -192,7 +188,6 @@ export default  function Dashboard() {
             if(callId==undefined){
                 setCreateLoader(false);
                 toast.error('Something went wrong, Please try again later.')
-                console.log('Error in creating a call');
             } 
             else{
                 const res = await axios.post(`${SERVER_URL}/create-call`, {
@@ -225,7 +220,6 @@ export default  function Dashboard() {
             const slug : string=response.data.slug; 
             if(callId==undefined){
                 toast.error('Something went wrong, Please try again later.')
-                console.log('Error in joining a call');
                 setJoinLoader(false);
             } 
             else{
@@ -295,7 +289,7 @@ export default  function Dashboard() {
             toast.success('Feedback sent successfully. Thank you!');
         }catch(e){
             setFeedbackLoader(false);
-            console.log('error while sending feedback')
+            console.error('error while sending feedback')
             toast.error('Error while sending feedback. Please try again.');
         }
     }
@@ -341,7 +335,7 @@ export default  function Dashboard() {
         }
         catch(e){
             setProfileLoader(false);
-            console.log(`error while updating user's profile info`);
+            console.error(`error while updating user's profile info`);
             toast.error('Error while updating profile. Please try again.');
         }
         setLnChange(false);
