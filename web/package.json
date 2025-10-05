@@ -22,6 +22,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/next-auth": "^3.15.0",
     "@types/nodemailer": "^6.4.17",
+    "@vercel/analytics": "^1.5.0",
     "agora-rtm-sdk": "^1.5.1",
     "autoprefixer": "^10.4.21",
     "axios": "^1.9.0",
