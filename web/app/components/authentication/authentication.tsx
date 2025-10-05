@@ -63,77 +63,74 @@ export function Authentication() {
         const lastName=lastNameRef.current?.value.trim();
         const password=passwordRef.current?.value.trim();
         if(email=='' || password=='') return;
+       
+
         if(sign){
             setLoading(true);
-            await axios.post('/api/auth/login', {
-                email: email,
-                password: password
-            }, { withCredentials: true })
-            .then(async (response) => {
+                try {
+                const response = await axios.post('/api/auth/login', {
+                    email,
+                    password
+                }, { withCredentials: true });
+
                 console.log(response.data);
-                console.log('persistent socket connection after login')
-                router.push('/dashboard');
-            })
-            .catch((error) => {
+                console.log('persistent socket connection after login');
+
+                router.push('/dashboard'); 
+            } catch (error: any) {
                 setLoading(false);
-                if(error.status==400){
-                    const errors=error.response.data.errors;
-                    for(const error of errors){
-                        if(error.path=="email"){
-                            setEmailError(error.message);
-                        }
-                        else if(error.path=="password"){
-                            setPasswordError(error.message);
-                        }
+
+                if(error.response?.status === 400){
+                    const errors = error.response.data.errors;
+                    for(const err of errors){
+                    if(err.path === "email") setEmailError(err.message);
+                    else if(err.path === "password") setPasswordError(err.message);
                     }    
                 }
                 else{
-                    if(error.status==403) setError('*User already logged in with google*')
-                    if(error.status==404) setError('*User not found*')
-                    if(error.status==401) setError('*Please enter correct password*')
-                    if(error.status==500) setError('*Internal server error, please try again*')
+                    if(error.response?.status === 403) setError('*User already logged in with google*');
+                    if(error.response?.status === 404) setError('*User not found*');
+                    if(error.response?.status === 401) setError('*Please enter correct password*');
+                    if(error.response?.status === 500) setError('*Internal server error, please try again*');
                     console.log(error.message);
                 }
-            })
+            }
         }
         else {
             setLoading(true);
-            console.log(firstName, ' ', lastName, ' ', email, ' ', password);
-            await axios.post('/api/auth/signup',{
-                firstName: firstName,
-                lastName: lastName,
-                email: email,
-                password : password
-            }, { withCredentials: true }).then(async (response)=>{
+            console.log(firstName, lastName, email, password);
+
+            try {
+                const response = await axios.post('/api/auth/signup',{
+                    firstName,
+                    lastName,
+                    email,
+                    password
+                }, { withCredentials: true });
+
                 console.log(response.data);
-                console.log('persistent socket connection after signup')
+                console.log('persistent socket connection after signup');
+
                 router.push('/dashboard');
-            }).catch((error)=>{
+            } catch (error: any) {
                 setLoading(false);
-                if(error.status==400){
-                    const errors=error.response.data.errors;
-                    for(const error of errors){
-                        if(error.path=="email"){
-                            setEmailError(error.message);
-                        }
-                        else if(error.path=="firstName"){
-                            setFirstNameError(error.message);
-                        }
-                        else if(error.path=="lastName"){
-                            setLastNameError(error.message);
-                        }
-                        else if(error.path=="password"){
-                            setPasswordError(error.message);
-                        }
+
+                if(error.response?.status === 400){
+                    const errors = error.response.data.errors;
+                    for(const err of errors){
+                    if(err.path === "email") setEmailError(err.message);
+                    else if(err.path === "firstName") setFirstNameError(err.message);
+                    else if(err.path === "lastName") setLastNameError(err.message);
+                    else if(err.path === "password") setPasswordError(err.message);
                     }    
                 }    
                 else{
-                    if(error.status==401) setError('*Error while signing up, please try again*')
-                    if(error.status==403) setError('*User already logged in with google*')
-                    if(error.status==500) setError('*Internal server error, please try again*')
+                    if(error.response?.status === 401) setError('*Error while signing up, please try again*');
+                    if(error.response?.status === 403) setError('*User already logged in with google*');
+                    if(error.response?.status === 500) setError('*Internal server error, please try again*');
                 }
-            })
-        }
+            }
+        }        
     }
 
     const handleGoogleLogin = async () => {
