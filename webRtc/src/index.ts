@@ -20,11 +20,21 @@ const CLIENT_URL=process.env.CLIENT_URL || 'http://localhost:3000/api/auth';
 const app=express();
 app.use(express.json());
 
+const allowedOrigins = [process.env.CLIENT_URL,'https://orbitron-three.vercel.app','https://orbitron.live', 'https://www.orbitron.live'];
+
 app.use(cors({
-  origin: '*', 
-  methods: ['GET', 'POST'],        
-  credentials: true                
+  origin: function(origin, callback){
+    if(!origin) return callback(null, true); 
+    if(allowedOrigins.includes(origin)){
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
 }));
+
+app.options('*', cors());
 
 const PORT = 8080;
 const server: http.Server = http.createServer(app);
