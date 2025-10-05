@@ -24,8 +24,8 @@ import EmojiIcon from "app/components/icons/emoji";
 import { ToastContainer, toast } from "react-toastify";
 import Picker from '@emoji-mart/react';
 import * as data from "@emoji-mart/data";
-const SERVER_URL = 'http://localhost:8080/call';
-
+const SERVER_URL = `${process.env.NEXT_PUBLIC_SERVER_URL}/call` || 'http://localhost:8080/call';
+console.log(SERVER_URL);
 export default function Call() {  
   const localStreamRef=useRef<MediaStream>(null);
   const sharedScreenRef=useRef<HTMLVideoElement>(null);
