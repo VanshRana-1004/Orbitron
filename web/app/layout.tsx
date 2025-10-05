@@ -15,6 +15,9 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Orbitron",
   description: "P2P Application",
+  icons: {
+    icon: "/carbon_shape-exclude.svg" 
+  },
 };
 
 

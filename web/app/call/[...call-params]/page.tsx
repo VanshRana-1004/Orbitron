@@ -897,7 +897,7 @@ export default function Call() {
       <div className="flex w-full bottom-10 left-1/2  -translate-x-1/2 fixed z-50 bg-black ">
 
         <div className="flex gap-7 absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 items-center">
-            <div onClick={toggleCam} className="flex self-center items-center justify-center p-2 rounded-full bg-black/30 hover:bg-white/10 text-sm text-white cursor-pointer">{cam ? <CamOffIcon/> : <CamOnIcon/>}</div>
+            <div onClick={toggleCam} className="flex self-center items-center justify-center p-2 rounded-full bg-black/30 hover:bg-white/10 text-sm text-white cursor-pointer">{cam ? <CamOnIcon/> : <CamOffIcon/>}</div>
             <div onClick={toggleMic} className="flex self-center items-center justify-center p-2 rounded-full bg-black/30 hover:bg-white/10 text-sm text-white cursor-pointer">{mic ? <MicOnIcon/> : <MicOffIcon/>}</div>
             <div onClick={leaveRoom} className="flex self-center items-center justify-center p-3 rounded-full bg-[#F8000F] hover:bg-[#ff0f1f] text-sm text-white cursor-pointer rotate-[135deg]"><EndCallIcon /></div> 
             <div onClick={handleShareScreen} className="flex self-center items-center justify-center p-2 rounded-full bg-black/30 hover:bg-white/10 text-sm text-white cursor-pointer">{screen ? <StopShareScreenIcon/> : <ShareScreenIcon/>}</div>
