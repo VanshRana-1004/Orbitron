@@ -1,10 +1,5 @@
 import { NextResponse,NextRequest } from "next/server";
-import { JwtPayload } from 'jsonwebtoken';
 import { prismaClient } from 'database';
-import { getToken } from "next-auth/jwt";
-
-const jwt_secret=process.env.JWT_SECRET; 
-const nextauth_secret = process.env.NEXTAUTH_SECRET!;
 
 export async function POST(req: NextRequest) {
     
@@ -30,7 +25,7 @@ export async function POST(req: NextRequest) {
             if(!response2){
                 const response3=await prismaClient.callUserTime.create({
                 data: {
-                        user: { connect: { id: userId } },
+                        user: { connect: { id: Number(userId) } },
                         call: { connect: { id: response1.id } },
                         joinedAt: new Date(),
                     },
