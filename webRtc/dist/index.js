@@ -197,7 +197,7 @@ callNamespace.on('connect', async (socket) => {
             return callback({ error: 'room not found' });
         const peer = new peer_1.default(name, socket.id, userId);
         room.peers.push(peer);
-        if (room.orgHost === userId && room.host !== userId) {
+        if ((room.orgHost === userId && room.host !== userId) || (room.orgHost === userId)) {
             room.host = userId;
             socket.emit('host');
             socket.to(roomId).emit('not-host');
@@ -466,9 +466,6 @@ callNamespace.on('connect', async (socket) => {
         }
     });
 });
-server.listen(PORT, () => {
-    console.log('server is listening on the PORT : 8080');
-});
 app.post('/create-call', async (req, res) => {
     const { roomId, userId } = req.body;
     const worker = await workerPromise;
@@ -510,4 +507,7 @@ app.post('/join-call', async (req, res) => {
     catch (e) {
         res.status(500).json({ message: 'error while joining room' });
     }
+});
+server.listen(PORT, () => {
+    console.log('server is listening on the PORT : 8080');
 });

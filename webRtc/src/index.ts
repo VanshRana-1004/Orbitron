@@ -166,12 +166,15 @@ const callNamespace = io.of('/call');
 callNamespace.on('connect', async (socket: Socket) => {
 
     socket.on('join-room',async ({roomId,name,userId},callback)=>{
+      console.log('[join] userId : ', userId)
       const room=roomMap[roomId];
       socket.join(roomId);
       if(!room) return callback({error : 'room not found'})
       const peer : Peer=new Peer(name,socket.id,userId);
       room.peers.push(peer);
-      if (room.orgHost === userId && room.host !== userId) {
+
+      if(room.orgHost === String(userId)){
+        console.log('[host] userId : ',userId);
         room.host = userId;
         socket.emit('host');
         socket.to(roomId).emit('not-host');
@@ -452,6 +455,7 @@ callNamespace.on('connect', async (socket: Socket) => {
 app.post('/create-call',async (req,res)=>{
     const {roomId , userId} : {roomId : string, userId : string }=req.body;
     const worker=await workerPromise;
+    console.log('[server] host id ',userId);
     const router = await worker.createRouter({ mediaCodecs });
     if(router) console.log('router created successfully.')
     try{

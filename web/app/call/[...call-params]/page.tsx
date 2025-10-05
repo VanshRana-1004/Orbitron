@@ -135,7 +135,8 @@ export default function Call() {
         });
         setImg(info.data.user.profileImage || '/defaultpc.png');
         nameRef.current=info.data.user.firstName+' '+info.data.user.lastName;
-        userIdRef.current=info.data.user.id;
+        userIdRef.current=response.data.user.id;
+        console.log('[userId] : ',userIdRef.current)
         imgRef.current=info.data.user.profileImage || '/defaultpc.png';
         
       }).catch((e)=>{
