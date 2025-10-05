@@ -4,7 +4,6 @@ import { prismaClient } from 'database';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { getAuthCookie } from '../../../lib/set-auth-cookie';
-console.log(prismaClient);
 
 const jwt_secret=process.env.JWT_SECRET as string;
 export async function POST(req: Request) {

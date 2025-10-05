@@ -1,6 +1,5 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import XIcon from "./components/icons/x";
 import LinkedinIcon from "./components/icons/linkedin";
 import GithubIcon from "./components/icons/github";
