@@ -1,6 +1,4 @@
 {
-    "extends": "@repo/typescript-config/base.json",
     "compilerOptions": {
-      // You can override or add extra options here
     }
   }
