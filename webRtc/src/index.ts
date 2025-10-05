@@ -20,7 +20,7 @@ const CLIENT_URL=process.env.CLIENT_URL || 'http://localhost:3000/api/auth';
 const app=express();
 app.use(express.json());
 
-const allowedOrigins = [process.env.CLIENT_URL,'https://orbitron-three.vercel.app','https://orbitron.live', 'https://www.orbitron.live'];
+const allowedOrigins = ['https://orbitron-three.vercel.app','https://orbitron.live', 'https://www.orbitron.live'];
 
 app.use(cors({
   origin: function(origin, callback){
