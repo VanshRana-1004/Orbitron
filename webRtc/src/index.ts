@@ -449,10 +449,6 @@ callNamespace.on('connect', async (socket: Socket) => {
     })
 })
 
-server.listen(PORT, () => {
-  console.log('server is listening on the PORT : 8080');
-});
-
 app.post('/create-call',async (req,res)=>{
     const {roomId , userId} : {roomId : string, userId : string }=req.body;
     const worker=await workerPromise;
@@ -495,3 +491,7 @@ app.post('/join-call',async (req,res)=>{
         res.status(500).json({ message : 'error while joining room' });
     }
 })
+
+server.listen(PORT, () => {
+  console.log('server is listening on the PORT : 8080');
+});
