@@ -210,7 +210,7 @@ export default function Home() {
             style={{background: "radial-gradient(125% 125% at 50% 100%, #18181B 40%, #7E5BEF 100%)",aspectRatio: width>768 ? 16/9 : 13/9}}>
               <video
                 ref={videoRef}
-                src="/demo.mp4"
+                src="https://res.cloudinary.com/dbbfntcly/video/upload/v1759687690/demo_w0uj96.mp4"
                 autoPlay
                 loop
                 playsInline
