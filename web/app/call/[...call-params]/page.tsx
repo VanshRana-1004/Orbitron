@@ -68,7 +68,8 @@ export default function Call() {
   const [screenPeer,setScreenPeer]=useState<string>('')
   const [host,setHost]=useState<boolean>(false);
   const [isRecording,setIsRecording]=useState<boolean>(false);
-  const [copied,setCopied]=useState<boolean>(false);
+  const [idCopied,setIdCopied]=useState<boolean>(false);
+  const [urlCopied,setUrlCopied]=useState<boolean>(false);
   const [img,setImg]=useState<string>('');
   const [showEmoji,setShowEmoji]=useState<boolean>(false);
 
@@ -82,6 +83,9 @@ export default function Call() {
   const [pos, setPos] = useState({ x:0,y:0 }); 
   const offset = useRef({ x: 0, y: 0 });
   const [auth,setAuth]=useState<boolean>(false);
+  const [share,setShare]=useState<boolean>(false);
+  const [callId,setCallId]=useState<string>('');
+  const [callUrl,setCallUrl]=useState<string>('');
 
 
   const onMouseDown = (e: React.MouseEvent) => {
@@ -155,12 +159,14 @@ export default function Call() {
   useEffect(()=>{
     if(!auth) return;
     const url=window.location.pathname;
+    setCallUrl('https://orbitron.live'+url);
     const segments=url.split('/');
     const callName=segments[2];
-    const callId=segments[3];
+    const calId=segments[3];
     if(callName) callNameRef.current=callName;
-    if(callId){
-      callIdRef.current=callId;
+    if(calId){
+      callIdRef.current=calId;
+      setCallId(calId);
     } 
 
     const socket=socketRef.current;
@@ -747,13 +753,22 @@ export default function Call() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatArr]);  
 
-  function copyToClipboard(){
+  function copyIdToClipboard(){
     if (callIdRef.current) {
-    navigator.clipboard.writeText(callIdRef.current).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+      navigator.clipboard.writeText(callIdRef.current).then(() => {
+        setIdCopied(true);
+        setTimeout(() => setIdCopied(false), 2000);
+      });
+    }
   }
+
+  function copyUrlToClipboard(){
+    const url=window.location.pathname
+    const urlToCopy='https://orbitron.live'+url
+    navigator.clipboard.writeText(urlToCopy).then(() => {
+      setUrlCopied(true);
+      setTimeout(() => setUrlCopied(false), 2000);
+    });
   }
   
   const handleEmojiSelect = (emoji: any) => {
@@ -857,10 +872,27 @@ export default function Call() {
           <p className="poppins-regular text-[14px] tracking-[-5%] text-white">{host? 'Host' : 'Participant'}</p>
         </div>
 
-        <div className="flex items-center self-center  gap-2 w-auto rounded-full bg-black/30 px-3 pr-2 py-1.5 ">
-          <p className="poppins-regular text-[14px] tracking-[-5%] text-white">Call-Id</p>
-          <div onClick={copyToClipboard} className={` cursor-pointer ${copied && 'pointer-events-none'}`}>{!copied ? <CopyIcon/> : <CheckIcon/>}</div>
-        </div> 
+        <div className="relative w-fit h-fit">
+          <div onClick={()=>setShare(!share)} className=" cursor-pointer bg-white py-1.5 px-4 rounded-full text-black hover:bg-white/80 poppins-regular text-[14px] tracking-[-5%] border border-white/70">
+            Share
+          </div>
+          {share &&
+            <div className="absolute translate-y-1 left-0 flex flex-col bg-black p-2 gap-1.5 rounded border border-zinc-900 min-w-[550px]">
+              <div className="flex items-center  justify-start gap-2 px-2 py-0">
+                <div onClick={copyIdToClipboard} className={` cursor-pointer ${idCopied && 'pointer-events-none'}`}>{!idCopied ? <CopyIcon/> : <CheckIcon/>}</div>
+                <p className="poppins-regular text-[14px] tracking-[-5%] text-white/90">Call-Id : </p>
+                <p className="poppins-light text-[14px]  text-white/80">{callId}</p>
+              </div>
+              <div className="border-t border-zinc-900"></div>
+              <div className="flex items-center  justify-start gap-2 px-2 py-0">
+                <div onClick={copyUrlToClipboard} className={` cursor-pointer ${urlCopied && 'pointer-events-none'}`}>{!urlCopied ? <CopyIcon/> : <CheckIcon/>}</div>
+                <p className="poppins-regular text-[14px] tracking-[-5%] text-white/90">Call-Url : </p>
+                <p className="poppins-light text-[14px]  text-white/80">{callUrl}</p>
+              </div>
+            </div>
+          }
+        </div>
+        
 
         {sharedScreen &&  <div className="poppins-regular text-[14px] tracking-[-5%] text-white flex items-center self-center bg-black/30 py-1.5 rounded-full  px-3">{`${screenPeer} representing`}</div>}
         {screen && <div className="poppins-regular text-[14px] tracking-[-5%] text-white flex items-center self-center bg-black/30 py-1.5 rounded-full  px-3">{`you representing`}</div>}

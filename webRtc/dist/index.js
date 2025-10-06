@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.io = exports.roomIdUserIdMap = exports.rtpPool = exports.roomMap = void 0;
 const http = __importStar(require("http"));
 const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
 const socket_io_1 = require("socket.io");
 const worker_1 = require("./helpers/worker");
 const config_1 = require("./helpers/config");
@@ -54,26 +55,30 @@ const redis_worker_1 = require("./redis/redis-worker");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000/api/auth';
-const app = (0, express_1.default)();
 const allowedOrigins = [
+    'http://localhost:3000',
     'https://orbitron-three.vercel.app',
     'https://orbitron.live',
     'https://www.orbitron.live'
 ];
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (allowedOrigins.includes(String(origin))) {
-        res.setHeader('Access-Control-Allow-Origin', String(origin));
-        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-    }
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
-    next();
-});
+const app = (0, express_1.default)();
+app.use((0, cors_1.default)({
+    origin: (origin, callback) => {
+        if (!origin)
+            return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        }
+        else {
+            callback(new Error(`CORS policy: origin ${origin} not allowed`));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express_1.default.json());
+app.get('/ping', (req, res) => res.send('pong'));
 const PORT = 8080;
 const server = http.createServer(app);
 const workerPromise = (0, worker_1.CreateWorker)();
@@ -191,13 +196,16 @@ async function cleanupPeer(socketId, roomId) {
 const callNamespace = exports.io.of('/call');
 callNamespace.on('connect', async (socket) => {
     socket.on('join-room', async ({ roomId, name, userId }, callback) => {
+        console.log('[join] userId : ', userId);
         const room = exports.roomMap[roomId];
         socket.join(roomId);
         if (!room)
             return callback({ error: 'room not found' });
         const peer = new peer_1.default(name, socket.id, userId);
         room.peers.push(peer);
-        if ((room.orgHost === userId && room.host !== userId) || (room.orgHost === userId)) {
+        console.log('[join] hostId : ', room.orgHost);
+        if (String(room.orgHost) === String(userId)) {
+            console.log('[host] userId : ', userId);
             room.host = userId;
             socket.emit('host');
             socket.to(roomId).emit('not-host');
@@ -469,6 +477,7 @@ callNamespace.on('connect', async (socket) => {
 app.post('/create-call', async (req, res) => {
     const { roomId, userId } = req.body;
     const worker = await workerPromise;
+    console.log('[server] host id ', userId);
     const router = await worker.createRouter({ mediaCodecs: config_1.mediaCodecs });
     if (router)
         console.log('router created successfully.');
