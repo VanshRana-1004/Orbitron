@@ -26,7 +26,7 @@ export default function Home() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [button,setButton]=useState<boolean>(false);
+  const [button,setButton]=useState<boolean>(true);
 
   const togglePlay = () => {
     const video = videoRef.current;
