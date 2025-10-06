@@ -13,15 +13,15 @@ interface RequestBody {
 }
 
 async function getClipsByUserId(userId: string, existingCallIds: string[]) {
-  const userWithCalls = await prismaClient.user.findUnique({
+  const attendedCalls = await prismaClient.user.findUnique({
     where: { id: Number(userId) },
     include: {
-      calls: true
+      callUserTimes : true 
     },
   });
-  console.log(userWithCalls)
+  console.log(attendedCalls)
 
-  if (!userWithCalls) return [];
+  if (!attendedCalls) return [];
 
   const finalResult: {
     callId: string;
@@ -42,7 +42,19 @@ async function getClipsByUserId(userId: string, existingCallIds: string[]) {
     }[];
   }[] = [];
 
-  const newCalls = userWithCalls.calls.filter(
+  const callIds = attendedCalls.callUserTimes.map((c) => c.callId);
+  
+  const calls = await prismaClient.call.findMany({
+    where: {
+      id: {
+        in: callIds,
+      },
+    },
+  });
+
+  console.log(calls);
+
+  const newCalls = calls.filter(
     call => !existingCallIds.includes(call.callingId)
   );
 

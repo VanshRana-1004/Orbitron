@@ -72,8 +72,11 @@ export function Authentication() {
                     email,
                     password
                 }, { withCredentials: true });
-
-                router.replace('/dashboard');
+                console.log(response);
+                if(response.status==200){
+                    console.log('dashboard');
+                    window.location.href='https://orbitron.live/dashboard'
+                }
 
             } catch (error: any) {
                 setLoading(false);
