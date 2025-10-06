@@ -73,8 +73,8 @@ export function Authentication() {
                     password
                 }, { withCredentials: true });
 
+                router.replace('/dashboard');
 
-                router.push('/dashboard'); 
             } catch (error: any) {
                 setLoading(false);
 

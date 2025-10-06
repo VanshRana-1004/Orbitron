@@ -213,14 +213,13 @@ export default function Home() {
                 src="/demo.mp4"
                 autoPlay
                 loop
-                muted
                 playsInline
                 className="bg-black rounded-[10px] w-full h-full"
               />
 
               {button && <button
                 onClick={togglePlay}  
-                className="z-50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center  text-white text-2xl font-semibold transition rounded-full border border-white/80 bg-black/20 p-3"
+                className="z-50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center  text-white text-2xl font-semibold transition rounded-full border border-white/90 bg-black/30 p-3"
               >
                 {isPlaying ? <PauseIcon/> : <PlayIcon/>}
               </button>}
