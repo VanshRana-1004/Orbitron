@@ -872,31 +872,33 @@ export default function Call() {
           <p className="poppins-regular text-[14px] tracking-[-5%] text-white">{host? 'Host' : 'Participant'}</p>
         </div>
 
+        {sharedScreen && !screen && <div className="poppins-regular text-[14px] tracking-[-5%] text-white flex items-center self-center bg-black/30 py-1.5 rounded-full  px-3">{`${screenPeer} representing`}</div>}
+        {screen && <div className="poppins-regular text-[14px] tracking-[-5%] text-white flex items-center self-center bg-black/30 py-1.5 rounded-full  px-3">{`you representing`}</div>}
+
         <div className="relative w-fit h-fit">
           <div onClick={()=>setShare(!share)} className=" cursor-pointer bg-white py-1.5 px-4 rounded-full text-black hover:bg-white/80 poppins-regular text-[14px] tracking-[-5%] border border-white/70">
             Share
           </div>
           {share &&
-            <div className="absolute translate-y-1 left-0 flex flex-col bg-black p-2 gap-1.5 rounded border border-zinc-900 min-w-[550px]">
-              <div className="flex items-center  justify-start gap-2 px-2 py-0">
-                <div onClick={copyIdToClipboard} className={` cursor-pointer ${idCopied && 'pointer-events-none'}`}>{!idCopied ? <CopyIcon/> : <CheckIcon/>}</div>
-                <p className="poppins-regular text-[14px] tracking-[-5%] text-white/90">Call-Id : </p>
-                <p className="poppins-light text-[14px]  text-white/80">{callId}</p>
+            <div className="absolute translate-y-1 left-0 flex flex-col bg-black p-2 gap-1.5 rounded border border-zinc-900 w-[600px]">
+              <div className="flex items-center w-full justify-start gap-2 px-2 py-0">
+                <div onClick={copyIdToClipboard} className={`w-[5%] cursor-pointer ${idCopied && 'pointer-events-none'}`}>{!idCopied ? <CopyIcon/> : <CheckIcon/>}</div>
+                <p className="poppins-regular text-[14px] w-[15%]  tracking-[-5%] text-white/90">Call-Id : </p>
+                <p className="poppins-light text-[14px] w-[80%] text-white/80">{callId}</p>
               </div>
               <div className="border-t border-zinc-900"></div>
-              <div className="flex items-center  justify-start gap-2 px-2 py-0">
-                <div onClick={copyUrlToClipboard} className={` cursor-pointer ${urlCopied && 'pointer-events-none'}`}>{!urlCopied ? <CopyIcon/> : <CheckIcon/>}</div>
-                <p className="poppins-regular text-[14px] tracking-[-5%] text-white/90">Call-Url : </p>
-                <p className="poppins-light text-[14px]  text-white/80">{callUrl}</p>
+              <div className="flex items-center w-full justify-start gap-2 px-2 py-0">
+                <div onClick={copyUrlToClipboard} className={`w-[5%] cursor-pointer ${urlCopied && 'pointer-events-none'}`}>{!urlCopied ? <CopyIcon/> : <CheckIcon/>}</div>
+                <p className="poppins-regular text-[14px]  w-[15%] tracking-[-5%] text-white/90">Call-Url : </p>
+                <p className="poppins-light text-[14px] w-[80%] text-white/80">{callUrl}</p>
               </div>
             </div>
           }
         </div>
         
 
-        {sharedScreen &&  <div className="poppins-regular text-[14px] tracking-[-5%] text-white flex items-center self-center bg-black/30 py-1.5 rounded-full  px-3">{`${screenPeer} representing`}</div>}
-        {screen && <div className="poppins-regular text-[14px] tracking-[-5%] text-white flex items-center self-center bg-black/30 py-1.5 rounded-full  px-3">{`you representing`}</div>}
-        {sharedScreen && <div onClick={()=>setHideClips(!hideClips)} className="cursor-pointer bg-white/80 py-1.5 px-4 rounded-full text-black hover:bg-white poppins-regular text-[14px] tracking-[-5%]">{hideClips ? `Show clips` : 'Hide clips'}</div>}
+        
+        {sharedScreen && <div onClick={()=>setHideClips(!hideClips)} className="cursor-pointer bg-white py-1.5 px-4 rounded-full text-black hover:bg-white/80 poppins-regular text-[14px] tracking-[-5%]">{hideClips ? `Show clips` : 'Hide clips'}</div>}
 
         {host && <div onClick={handleRecording} className={`cursor-pointer  ${isRecording ? 'bg-[#F8000F] text-white hover:bg-[#ff0f1f]' : 'bg-white text-black hover:bg-white/70'} py-1.5 px-4 rounded-full  poppins-regular text-[14px] tracking-[-5%]`}>{isRecording ? 'Stop Recording' : 'Start Recording'}</div>}
 
