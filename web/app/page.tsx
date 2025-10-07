@@ -117,14 +117,21 @@ export default function Home() {
 
         </div>
 
-        <div className={`z-10 px-auto w-auto h-[414px] relative ${width>640 ? 'top-48' : 'top-40'} flex flex-col items-center gap-[25px]`}>
+        <div className={`z-10 px-auto w-auto h-[50%] relative ${width>1280 ? 'top-48' : 'top-1/2 -translate-y-1/2'} flex flex-col items-center gap-[25px]`}>
 
           <div className={`flex flex-col poppins-medium tracking-[-5%] items-center justify-center bg-[linear-gradient(92.22deg,rgba(255,255,255,0.4)_-6.68%,#FAF9F9_31.88%,#D1D1D1_61.39%,rgba(181,181,181,0.4)_89.88%)] bg-clip-text text-transparent`}>
               
-            {width>840 && 
+            {width>=1280 && 
               <div className="flex flex-col items-center justify-center">
                 <p className="text-wrap text-center text-[77px] tracking-tight leading-[80px]">Talk Freely. Record Easily.</p>
                 <p className="text-wrap text-center text-[77px] tracking-tight leading-[80px]">Revisit AnyTime.</p>  
+              </div>
+            }
+
+            {width>840 && width<1280 &&
+              <div className="flex flex-col items-center justify-center">
+                <p className="text-wrap text-center text-[70px] tracking-tight leading-[80px]">Talk Freely. Record Easily.</p>
+                <p className="text-wrap text-center text-[70px] tracking-tight leading-[80px]">Revisit AnyTime.</p>  
               </div>
             }
 
