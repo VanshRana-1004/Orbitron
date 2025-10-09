@@ -56,7 +56,7 @@ export default function Home() {
   useEffect(()=>{
     const interval=setInterval(()=>{
       setActiveIndex(activeIndex=>(activeIndex+1)%3)
-    },5000)
+    },12000)
     return (()=>{
       clearInterval(interval);
     })
