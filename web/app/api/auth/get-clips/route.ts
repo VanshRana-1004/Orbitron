@@ -19,7 +19,7 @@ async function getClipsByUserId(userId: string, existingCallIds: string[]) {
       callUserTimes : true 
     },
   });
-  console.log(attendedCalls)
+  // console.log(attendedCalls)
 
   if (!attendedCalls) return [];
 
@@ -52,13 +52,13 @@ async function getClipsByUserId(userId: string, existingCallIds: string[]) {
     },
   });
 
-  console.log(calls);
+  // console.log(calls);
 
   const newCalls = calls.filter(
     call => !existingCallIds.includes(call.callingId)
   );
 
-  console.log(`Found ${newCalls.length} new calls to process.`);
+  // console.log(`Found ${newCalls.length} new calls to process.`);
 
 
   for (const call of newCalls) {
@@ -137,7 +137,7 @@ async function getClipsByUserId(userId: string, existingCallIds: string[]) {
         }
       }
 
-      console.log('[peers data] : ', peers);
+      // console.log('[peers data] : ', peers);
 
       finalResult.push({
         callId: call.callingId,
@@ -170,14 +170,14 @@ export async function POST(req: Request) {
   
   const userIdString = String(userId);
 
-  console.log('POST: Fetching NEW clips for userId:', userIdString);
-  console.log('POST: Client already has callIds:', callIds);
+  // console.log('POST: Fetching NEW clips for userId:', userIdString);
+  // console.log('POST: Client already has callIds:', callIds);
 
   try {
     const newClips = await getClipsByUserId(userIdString, callIds);
     return Response.json(newClips);
   } catch (error) {
-     console.error("Error processing clips:", error);
+    //  console.error("Error processing clips:", error);
      return Response.json({ error: 'Server error processing request' }, { status: 500 });
   }
 }

@@ -144,6 +144,7 @@ export default function Call() {
         console.log('[userId] : ',userIdRef.current)
         imgRef.current=info.data.user.profileImage || '/defaultpc.png';
         setAuth(true);
+  
       }).catch((e)=>{
         redirect('/login');
       })
@@ -156,6 +157,17 @@ export default function Call() {
     return () => {socketRef.current.disconnect()};
   }, []);  
   
+  async function entryInDB(){
+    await axios.post('/api/auth/add-user',{
+      callId : callIdRef.current,
+      userId : userIdRef.current
+    }).then((res)=>{
+      console.log('entry successful');
+    }).catch((e)=>{
+      console.log('failed to make entry');
+    })
+  } 
+
   useEffect(()=>{
     if(!auth) return;
     const url=window.location.pathname;
@@ -169,8 +181,10 @@ export default function Call() {
       setCallId(calId);
     } 
 
+    entryInDB();
+
     const socket=socketRef.current;
-    
+
     joinRoom();
     let timeout: ReturnType<typeof setTimeout> | undefined;
     let timeout1:  ReturnType<typeof setTimeout> | undefined;
@@ -580,6 +594,20 @@ export default function Call() {
       setMic(!mic); 
   } 
 
+  function stopScreen(){
+    if (screenProducerRef.current) {
+      screenProducerRef.current.close();
+      screenProducerRef.current = null;
+    }
+    if (saudioProducerRef.current) {
+      saudioProducerRef.current.close();
+      saudioProducerRef.current = null;
+    }
+      
+    socketRef.current.emit('screen-share', { roomId: callIdRef.current, toggle: false, name : nameRef.current },(res : {error? : string,toggle : boolean})=>{});
+    setScreen(false);
+  }
+
   async function handleShareScreen() {
     const sendTransport = sendTransportRef.current;
     if (screen) {
@@ -625,6 +653,18 @@ export default function Call() {
       let micTrack = screenStream.getAudioTracks()[0];
       if (!micTrack) {
         micTrack = createSilentAudioTrack();
+      }
+
+      if (camTrack) {
+        camTrack.onended = () => {
+          stopScreen();
+        };
+      }
+
+      if (micTrack) {
+        micTrack.onended = () => {
+          stopScreen();
+        };
       }
 
       if (micTrack) {

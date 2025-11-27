@@ -86,29 +86,13 @@ export async function POST(req: NextRequest) {
             }
         })
         if(response1){
-            console.log('user created a call room');
-            const response2=await prismaClient.callUserTime.create({
-                data: {
-                    user: { connect: { id: Number(userId) } },
-                    call: { connect: { id: Number(response1.id) } },
-                    joinedAt: new Date(),
-                },
-            });
-            if(response2){
-                console.log('time when user joined the call created');
-                return NextResponse.json({
-                    message: 'call created',
-                    slug: callSlug,
-                    callingId:callingId,
-                    userName: userName,
-                    userId
-                },{status : 200});
-                
-            } 
-            else{
-                console.log('failed to create user-call-time record');
-                return NextResponse.json({message : 'error in creating a user-call-time record'},{status:401})    
-            }
+            return NextResponse.json({
+                message: 'call created',
+                slug: callSlug,
+                callingId:callingId,
+                userName: userName,
+                userId
+            },{status : 200});
         }
         else{
             console.log('user failed to create a call room');

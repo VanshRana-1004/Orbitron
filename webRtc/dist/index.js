@@ -56,10 +56,10 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000/api/auth';
 const allowedOrigins = [
-    'http://localhost:3000',
     'https://orbitron-three.vercel.app',
     'https://orbitron.live',
-    'https://www.orbitron.live'
+    'https://www.orbitron.live',
+    'http://localhost:3000'
 ];
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
