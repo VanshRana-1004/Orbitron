@@ -172,7 +172,7 @@ export default function Home() {
         </div>   
 
         <div
-          className="absolute left-1/2 -translate-x-1/2 -bottom-[250px] w-full z-0"
+          className="absolute left-1/2 -translate-x-1/2 -bottom-[250px] w-full z-0 opacity-40"
           style={{
             height: '500px',
             background: 'linear-gradient(180deg, #7E5BEF 0%, #7E5BEF 100%)',

@@ -14,12 +14,14 @@ export async function POST(req : NextRequest){
             const callSlug=call.slug;
             console.log('making user entry in (callSlug) : ',callSlug );
             console.log('userId : ',userId);
+            console.log('callId : ',call.id)
             const findUser=await prismaClient.callUserTime.findFirst({
                 where : {
                     userId : Number(userId),
-                    callId : Number(callId)
+                    callId : Number(call.id)
                 }
             })
+            console.log('[find User] : ',findUser);
             if(!findUser){
                 const user=await prismaClient.callUserTime.create({
                     data : {
@@ -37,14 +39,15 @@ export async function POST(req : NextRequest){
                         userId 
                     },{status : 200});
                 }
-                else{
-                    console.log('time when user joined the call created');
-                    return NextResponse.json({
-                        message: 'call joined again',
-                        slug: callSlug,
-                        callingId:callId,
-                    },{status : 200});   
-                }
+                
+            }
+            else{
+                console.log('time when user joined the call created');
+                return NextResponse.json({
+                    message: 'call joined again',
+                    slug: callSlug,
+                    callingId:callId,
+                },{status : 200});   
             }
         }
         else{
@@ -53,7 +56,7 @@ export async function POST(req : NextRequest){
         }
     }catch(e){
         console.log('failed to make user entry in db');
-        return NextResponse.json({message : 'failed to make user entry in db'},{status:401})
+        return NextResponse.json({message : 'failed to make user entry in db'},{status:402})
     }
     return NextResponse.json({message:'Unhandled case reached.'},{status : 500})
 }

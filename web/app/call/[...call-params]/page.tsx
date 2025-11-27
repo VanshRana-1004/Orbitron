@@ -157,9 +157,9 @@ export default function Call() {
     return () => {socketRef.current.disconnect()};
   }, []);  
   
-  async function entryInDB(){
+  async function entryInDB(callId : string){
     await axios.post('/api/auth/add-user',{
-      callId : callIdRef.current,
+      callId : callId,
       userId : userIdRef.current
     }).then((res)=>{
       console.log('entry successful');
@@ -181,7 +181,7 @@ export default function Call() {
       setCallId(calId);
     } 
 
-    entryInDB();
+    entryInDB(callIdRef.current);
 
     const socket=socketRef.current;
 
