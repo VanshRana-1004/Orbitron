@@ -160,7 +160,7 @@ class Room {
         if (!this.router)
             return null;
         const transport = await this.router.createPlainTransport({
-            listenIp: { ip: '0.0.0.0', announcedIp: process.env.ANNOUNCED_IP },
+            listenIp: { ip: '0.0.0.0', announcedIp: process.env.ANNOUNCED_IP || '127.0.0.1' },
             rtcpMux: true,
             comedia: false,
         });

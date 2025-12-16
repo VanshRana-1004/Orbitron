@@ -8,7 +8,6 @@ import { ChildProcessWithoutNullStreams } from "child_process";
 
 const sdpDir=path.join('/webRtc','sdp');
 const recordingDir=path.join('/webRtc','recordings');
-
 class Room{
     public ended : boolean;
     public roomId : string;
@@ -196,7 +195,7 @@ class Room{
     async getPlainTransport(){
         if(!this.router) return null;
         const transport=await this.router.createPlainTransport({
-            listenIp:{ip:'0.0.0.0',announcedIp:process.env.ANNOUNCED_IP},
+            listenIp:{ip:'0.0.0.0',announcedIp:process.env.ANNOUNCED_IP || '127.0.0.1'},
             rtcpMux:true,
             comedia:false,
         })
