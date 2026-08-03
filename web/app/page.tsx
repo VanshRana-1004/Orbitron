@@ -75,6 +75,11 @@ export default function Home() {
       backgroundSize: '40px 40px, 40px 40px, 40px 40px, 40px 40px',
     }}>
 
+      <div className={`z-50 rounded-xl ${width>768 ? 'w-1/3 ' : 'w-2/3 '} bg-white py-3 px-5 fixed right-5 bottom-5 flex flex-col text-wrap items-center justify-center poppins-medium `}>
+          <p className={`leading-tight text-wrap w-full text-center ${width>768 ? 'text-[18px] text-black' : 'text-[15px] text-black'} font-bold`}>Thanks for the love!❤️ The server is no longer live, but I'll be back with something better soon.</p>
+      </div>  
+
+
       <div className="h-screen overflow-hidden">
 
         <div className={`flex justify-between items-center relative top-5 h-10 w-full ${width<800 ? 'px-3' : 'px-32'}`}>
@@ -117,6 +122,8 @@ export default function Home() {
 
         </div>
 
+        
+        
         <div className={`z-10 px-auto w-auto h-[50%] relative ${width>1280 ? 'top-48' : 'top-1/2 -translate-y-1/2'} flex flex-col items-center gap-[10px]`}>
 
           <div className={`flex flex-col poppins-medium tracking-[-5%] items-center justify-center bg-[linear-gradient(92.22deg,rgba(255,255,255,0.4)_-6.68%,#FAF9F9_31.88%,#D1D1D1_61.39%,rgba(181,181,181,0.4)_89.88%)] bg-clip-text text-transparent`}>
@@ -161,13 +168,14 @@ export default function Home() {
           </div>
 
           <div className={`flex flex-col text-wrap items-center justify-center poppins-medium font-normal `}>
-            <p className={`text-wrap w-[80%] text-center ${width>768 ? 'text-[18px] text-gray-300' : 'text-[15px] text-gray-400'} tracking-[-2%]`}>Orbitron combines real-time video calls with instant session recording - no extra setup, no hassle.</p>
+            <p className={`text-wrap w-[80%] text-center ${width>768 ? 'text-[18px] text-gray-300' : 'text-[15px] text-gray-400'}`}>Orbitron combines real-time video calls with instant session recording - no extra setup, no hassle.</p>
           </div>
           
           <div className="flex gap-[20px]">
             <button onClick={()=>router.push('/dashboard')} className={`${width>768 ? 'text-[16px]' : 'text-[14px]'} poppins-medium font-medium bg-white text-black px-[24px] py-[14px] rounded-[100px] cursor-pointer hover:bg-gray-200 transition-transform duration-150 active:scale-95`}>Explore Now</button>
             <a href={'#demo'} className={`${width>768 ? 'text-[16px]' : 'text-[14px]'} poppins-medium font-medium bg-black text-white px-[24px] py-[14px] rounded-[100px] cursor-pointer hover:bg-zinc-900 transition-transform duration-150 active:scale-95`}>Demo Video</a>
           </div>
+
 
         </div>   
 

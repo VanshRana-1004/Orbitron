@@ -368,6 +368,9 @@ export default  function Dashboard() {
         `,
         backgroundSize: '40px 40px, 40px 40px, 40px 40px, 40px 40px',
     }}>
+        <div className={`z-50 rounded-xl ${width>768 ? 'w-1/3 ' : 'w-2/3 '} bg-gray-100 py-3 px-5 fixed right-5 bottom-5 flex flex-col text-wrap items-center justify-center poppins-medium `}>
+          <p className={`leading-tight text-wrap w-full text-center ${width>768 ? 'text-[18px] text-black' : 'text-[15px] text-black'} font-semibold`}>Thanks for the love!❤️ The server is no longer live, but I'll be back with something better soon.</p>
+        </div>  
 
         <ToastContainer position="top-center" autoClose={3000} theme='dark'/>
 
