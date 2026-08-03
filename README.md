@@ -3,7 +3,7 @@
 🚀 **Orbitron** is a video calling platform with **in-app centralized session recording**.  
 No more local screen recordings or manual uploads — every peer’s stream (video/audio/screen) is recorded **server-side** and automatically processed into a final synced video.
 
-Live : [Orbitron](https://www.orbitron.live/)
+Live : [Orbitron](https://orbitron-three.vercel.app/)
 
 ---
 ## Demo
